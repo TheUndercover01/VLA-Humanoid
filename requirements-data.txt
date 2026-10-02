@@ -1,0 +1,8 @@
+# laptop side: tracking, retargeting, motion vocabulary (Python 3.11)
+numpy
+scipy
+opencv-contrib-python
+mediapipe
+torch
+matplotlib
+tqdm
