@@ -59,6 +59,7 @@ def main():
     while kept < args.episodes:
         env.set_layouts(tasks.sample_layouts(args.task, n, gen))
         obs, _ = env.reset()
+        env.episode_done[:] = False             # the flag persists across batches
         policy.reset(env)
         recs = [{"front": [], "wrist": [], "state": [], "action": [], "skills": []} for _ in range(n)]
         done = torch.zeros(n, dtype=torch.bool, device=env.device)
