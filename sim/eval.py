@@ -4,6 +4,9 @@ All 100 start states run in parallel (one env each, one episode each).
 
     PYTHONPATH=. ./isaaclab.sh -p sim/eval.py --headless --task c1 --policy scripted
     ... --video media/c1_scripted.mp4 --enable_cameras      # also record envs 0 and 1
+    ... --policy rsl:runs/rl/c1_raw_s1/model_1999.pt         # raw-action RL expert
+    ... --policy rsl:runs/rl/c1_vocab_s1/model_249.pt --vocab data/processed/vocab_standin.pt
+    ... --policy vla --enable_cameras [--plan]               # SmolVLA via vla/server.py (B0, B1, B1+LLM)
 """
 import argparse
 
@@ -11,7 +14,10 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--task", required=True)
-parser.add_argument("--policy", default="scripted", help="scripted | rsl:<checkpoint.pt>")
+parser.add_argument("--policy", default="scripted", help="scripted | rsl:<checkpoint.pt> | vla")
+parser.add_argument("--vocab", default=None, help="vocabulary for an rsl checkpoint trained with --action vocab")
+parser.add_argument("--vla_port", type=int, default=6011)
+parser.add_argument("--plan", action="store_true", help="vla: follow the planner's atomic prompts (B1+LLM)")
 parser.add_argument("--name", default=None, help="model name in the CSV (default: --policy)")
 parser.add_argument("--seed", type=int, default=0, help="training seed of the policy, for the CSV")
 parser.add_argument("--out", default=None, help="CSV path (default runs/eval/<name>_<task>.csv)")
@@ -29,6 +35,7 @@ import torch  # noqa: E402
 
 from sim.envs import tasks  # noqa: E402
 from sim.envs.panda_env import PandaTaskEnv, PandaTaskEnvCfg  # noqa: E402
+from sim.envs.vocab_env import PandaVocabEnv, PandaVocabEnvCfg  # noqa: E402
 from sim.expert import SKILLS, ScriptedExpert  # noqa: E402
 from sim.video import Recorder  # noqa: E402
 
@@ -41,16 +48,27 @@ def make_policy(name, env):
     if name.startswith("rsl:"):
         from sim.rl_cfg import RslPolicy
         return RslPolicy(name[4:], env)
+    if name == "vla":
+        from sim.vla_policy import VLAPolicy
+        from vla.llm_planner import plan
+        prompt = tasks.PROMPTS[args.task]
+        return VLAPolicy(args.vla_port, prompt, plan=plan(prompt) if args.plan else None)
     raise ValueError(f"unknown policy {name}")
 
 
 def main():
     layouts = torch.load(STATES / f"{args.task}.pt")["layouts"]
     n = len(layouts)
-    cfg = PandaTaskEnvCfg(task=args.task, cameras=args.video is not None, image_size=args.image_size)
+    vla = args.policy == "vla"
+    cameras = args.video is not None or vla
+    size = 256 if vla else args.image_size            # the VLA sees the image size it was trained on
+    if args.vocab:
+        cfg = PandaVocabEnvCfg(task=args.task, cameras=cameras, image_size=size, vocab_path=args.vocab)
+    else:
+        cfg = PandaTaskEnvCfg(task=args.task, cameras=cameras, image_size=size)
     cfg.scene.num_envs = n
     cfg.sim.device = args.device
-    env = PandaTaskEnv(cfg)
+    env = PandaVocabEnv(cfg) if args.vocab else PandaTaskEnv(cfg)
     env.set_layouts(layouts)
     policy = make_policy(args.policy, env)
     obs, _ = env.reset()
@@ -61,6 +79,7 @@ def main():
     if args.video:
         ids = [int(i) for i in args.video_envs.split(",")]
         rec = Recorder(args.video, env_ids=ids, caption=f'{name}: "{tasks.PROMPTS[args.task]}"')
+        env.tick_callback = lambda e: rec.add(e.images(), f"t = {e.ticks[ids[0]].item() * 0.1:4.1f} s")
 
     captured = torch.zeros(n, dtype=torch.bool, device=env.device)
     rows = [None] * n
@@ -72,8 +91,10 @@ def main():
                 sentences[i].append(SKILLS[k])
         obs, _, _, _, _ = env.step(action)
         policy.update(env)
-        if rec:
-            rec.add(obs, f"t = {(t + 1) * 0.1:4.1f} s")
+        if args.vocab:                                 # vocabulary policies: the chosen primitive
+            for i, k in enumerate(env.skill.tolist()):
+                if not captured[i] and (not sentences[i] or sentences[i][-1] != env.skills[k]):
+                    sentences[i].append(env.skills[k])
         new = env.episode_done & ~captured
         if new.any():
             ids = new.nonzero().squeeze(-1)
