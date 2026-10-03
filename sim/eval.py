@@ -109,6 +109,7 @@ def main():
                     "time": round(env.last_episode["time"][i].item(), 2),
                     "jerk": round(env.last_episode["jerk"][i].item(), 3),
                     "peak_force": round(env.last_episode["peak_force"][i].item(), 2),
+                    "lifted": int(env.last_episode["lifted"][i].item()),     # red cube was >= 5 cm up at some point
                     "skills": " > ".join(sentences[i]),
                 }
             captured |= new

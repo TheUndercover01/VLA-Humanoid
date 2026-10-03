@@ -110,4 +110,6 @@ Scripted expert on the eval states: push 100, lift 100, c1 100, c2 100, **c3 89*
 - Oracle distillation data recorded: 500 successful scripted episodes each for c1, c2, c3 (c3 needed 600 tries), with front/wrist images; LeRobot dataset being built.
 - RL runs now: raw c1 + raw c2 (GPU 0), vocab c1 + vocab c2 (GPU 1).
 
+- Cheating check (user request). Old raw C1 (iteration 1700) re-scored with the eval code from before the change: **100/100 under the old rule, 47/100 with the lift rule**, so 53 of its successes were pushes (vocabulary: 62 of 81). Raw C2 at iteration 800: **76/100, red lifted in all 100 episodes**, red sits on blue in the videos, so no shortcut; but it stacks hard (peak contact force ~60–75 N and jerk ~12–14 vs ~17 N and ~6.5 for the scripted expert). Eval CSVs now carry a `lifted` column (red cube ≥ 5 cm up at some point). Video `media/12_raw_rl_c2_it800.mp4`.
+
 Next: evaluate the RL runs when they finish; then stand-in atomic clips (cut from the scripted expert, one skill per clip) for the B1 pipeline and the synthetic vocabulary.

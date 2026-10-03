@@ -168,7 +168,7 @@ class PandaTaskEnv(DirectRLEnv):
         self.jerk_cnt = torch.zeros(n, device=dev)
         self.peak_force = torch.zeros(n, device=dev)
         # filled when an episode ends; read by the eval harness
-        self.last_episode = {k: torch.zeros(n, device=dev) for k in ["success", "time", "jerk", "peak_force"]}
+        self.last_episode = {k: torch.zeros(n, device=dev) for k in ["success", "time", "jerk", "peak_force", "lifted"]}
         self.last_reached = torch.zeros_like(self.reached)
         self.last_knocked = torch.zeros_like(self.knocked)
         self.episode_done = torch.zeros(n, dtype=torch.bool, device=dev)
@@ -360,6 +360,7 @@ class PandaTaskEnv(DirectRLEnv):
         self.last_episode["time"][done_ids] = self.ticks[done_ids].float() * dt
         self.last_episode["jerk"][done_ids] = self.jerk_sum[done_ids] / self.jerk_cnt[done_ids].clamp(min=1) / dt**3
         self.last_episode["peak_force"][done_ids] = self.peak_force[done_ids]
+        self.last_episode["lifted"][done_ids] = self.was_lifted[done_ids].float()
         self.last_reached[done_ids] = self.reached[done_ids]
         self.last_knocked[done_ids] = self.knocked[done_ids]
         self.episode_done[done_ids] = True
