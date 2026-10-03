@@ -49,11 +49,11 @@ def main():
     ap.add_argument("--stats_from", default=None, help="dataset root with meta/stats.json (needed for base)")
     ap.add_argument("--port", type=int, default=ADDRESS[1])
     ap.add_argument("--device", default="cuda")
+    ap.add_argument("--max_batch", type=int, default=25, help="envs per forward pass (bounds GPU memory)")
     args = ap.parse_args()
     pol, pre, post = load(args.policy, args.stats_from, args.device)
-    print(f"serving {args.policy} on port {args.port}, chunk {pol.config.chunk_size}", flush=True)
-
     with Listener((ADDRESS[0], args.port), authkey=AUTHKEY) as listener:
+        print(f"serving {args.policy} on port {args.port}, chunk {pol.config.chunk_size}", flush=True)
         while True:
             with listener.accept() as conn:
                 while True:
@@ -69,9 +69,12 @@ def main():
                     b = len(msg["task"])
                     batch = {**imgs, "observation.state": torch.from_numpy(
                         np.frombuffer(msg["state"], np.float32).reshape(b, 6).copy()), "task": list(msg["task"])}
-                    with torch.inference_mode():
-                        chunk = post(pol.predict_action_chunk(pre(batch)))
-                    chunk = chunk.float().cpu().numpy().astype(np.float32)
+                    chunks = []
+                    for i in range(0, b, args.max_batch):
+                        part = {k: v[i:i + args.max_batch] for k, v in batch.items()}
+                        with torch.inference_mode():
+                            chunks.append(post(pol.predict_action_chunk(pre(part))).float().cpu())
+                    chunk = torch.cat(chunks).numpy().astype(np.float32)
                     conn.send({"actions": chunk.tobytes(), "shape": chunk.shape})
 
 

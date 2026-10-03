@@ -17,6 +17,7 @@ parser.add_argument("--max_iterations", type=int, default=1500)
 parser.add_argument("--run_name", default=None)
 parser.add_argument("--action", default="raw", choices=["raw", "vocab"])
 parser.add_argument("--vocab", default="data/processed/vocab_standin.pt")
+parser.add_argument("--resume", default=None, help="checkpoint to continue from (same run dir)")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 app = AppLauncher(args).app
@@ -52,14 +53,22 @@ def main():
     agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, metadata.version("rsl-rl-lib"))
     log_dir = Path("runs/rl") / (args.run_name or f"{args.task}_{args.action}_s{args.seed}")
     log_dir.mkdir(parents=True, exist_ok=True)
+    meta_path = log_dir / "meta.json"
     sim_s_per_iter = agent_cfg.num_steps_per_env * args.num_envs * env.unwrapped.step_dt
-    (log_dir / "meta.json").write_text(json.dumps(
+    if not (args.resume and meta_path.exists()):
+        meta_path.write_text(json.dumps(
         {"task": args.task, "seed": args.seed, "num_envs": args.num_envs, "action": args.action,
          "num_steps_per_env": agent_cfg.num_steps_per_env, "sim_seconds_per_iteration": sim_s_per_iter,
          "vocab": args.vocab if args.action == "vocab" else None}, indent=1))
+    if args.resume:
+        (log_dir / "resumed.txt").open("a").write(f"resumed from {args.resume}\n")
 
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=str(log_dir), device=agent_cfg.device)
-    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    remaining = agent_cfg.max_iterations
+    if args.resume:
+        runner.load(args.resume)
+        remaining = agent_cfg.max_iterations - runner.current_learning_iteration
+    runner.learn(num_learning_iterations=remaining, init_at_random_ep_len=True)
     env.close()
 
 

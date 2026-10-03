@@ -158,19 +158,24 @@ def reward(task, s, held_ok):
             d_tcp_blue = (tcp - blue).norm(dim=-1)
             rew = (1 - on) * 0.5 * (1 - torch.tanh(8 * d_tcp_blue)) + 2.0 * (1 - torch.tanh(6 * d_blue))
             rew = rew + on * 0.5 * (1 - torch.tanh(8 * d_reach))
-        # Grasp is detected by contact geometry, not height, and carrying is rewarded by the 3-D
-        # distance to the resting pose at the goal, so lowering the cube is never penalised.
-        # Once the cube is at the goal pose only the at-goal term pays, and it grows as the
-        # gripper opens, so letting go is always a gain. (The prototype's height-based "held" made
-        # PPO hover over the goal; paying grasp and success terms side by side made it hold the
-        # gripper exactly at the release threshold.)
+        # Grasp is detected by contact geometry, not height. The cube's 3-D distance to its resting
+        # pose at the goal pays whether or not it is held, so lowering it and letting go near the
+        # goal never lose much. At the goal pose the at-goal term grows as the gripper opens, and
+        # the grasp and stay-near-the-cube terms switch off, so the hand lets go and leaves it at rest.
+        # History of what went wrong (PROGRESS.md): a height-based "held" made PPO hover over the
+        # goal; grasp and success terms paid side by side made it sit on the release threshold;
+        # carry credit only while grasped made the vocabulary agent never put the cube down; the
+        # reach term made the raw C2 agent keep jostling the stacked cube.
         at_goal = (d_goal < 0.02) & ((red[:, 2] - g[:, 2]).abs() < 0.01)
         grasped = ((tcp - red).norm(dim=-1) < 0.03) & (s["grip"] > 0.03) & (s["grip"] < RELEASED) & ~at_goal
+        stage_on = torch.ones_like(d_goal)
         if task == "c3":
+            stage_on = on
             grasped, at_goal = grasped & (on > 0), at_goal & (on > 0)
         grasped, at_goal = grasped.float(), at_goal.float()
         d3 = (red - g).norm(dim=-1)
-        rew = rew + 1.0 * grasped + 3.0 * grasped * (1 - torch.tanh(5 * d3))
+        rew = rew - 0.5 * (1 - torch.tanh(8 * d_reach)) * at_goal * stage_on
+        rew = rew + 1.0 * grasped + 3.0 * stage_on * (1 - torch.tanh(5 * d3))
         rew = rew + at_goal * (3.0 + 3.0 * s["grip"] / 0.08)
     rew = rew - 0.01 * ((s["cmd"] - tcp) ** 2).sum(-1)
     return rew + SUCCESS_REWARD * held_ok.float()

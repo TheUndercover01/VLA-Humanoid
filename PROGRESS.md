@@ -86,4 +86,21 @@ Scripted expert on the eval states: push 100, lift 100, c1 100, c2 100, **c3 89*
 - Infrastructure notes: run long jobs detached (`scripts/run_isaac.sh`, `setsid nohup`), background shells are killed after 2 h; the lerobot env needs `lerobot[dataset,training]` with torch pinned to cu128; accelerate needs `NCCL_P2P_DISABLE=1 NCCL_IB_DISABLE=1` on RTX 4090s; torchcodec does not load (LeRobot falls back to PyAV).
 - Raw RL after the reward fix (training metrics, not eval): C1 at iteration 767 success-at-end 14%, place 55% and rising; C2 at 600 place 17%.
 
-Next: VLA evaluation bridge (SmolVLA in the lerobot env serving actions to the Isaac eval harness) for B0 and B1; evaluate the RL runs when they finish; then stand-in atomic clips (cut from the scripted expert, one skill per clip) for the B1 pipeline and the synthetic vocabulary.
+### Sat 3 Oct (late): first baseline numbers; reward fix 3; all RL restarted
+- VLA bridge: `vla/server.py` (lerobot env) serves SmolVLA action chunks over a local socket (raw bytes, so numpy 1/2 does not matter; sub-batches of 25 envs to bound GPU memory); `sim/vla_policy.py` replans every 10 steps; `--plan` follows the planner's atomic prompts. `scripts/eval_vla_suite.sh` runs B and B+LLM on all tasks.
+- `vla/check_fit.py`: the B1 stand-in model reproduces its own training actions with MAE 0.03–0.085 vs 0.17–0.39 for a mean predictor, so the VLA pipeline is correct.
+- **Baseline results on the eval states (stand-in clips; the real B1 comes from the phone clips):**
+
+| Model | push | lift | c1 | c2 | c3 |
+|---|---|---|---|---|---|
+| B0 smolvla_base | 0 | 0 | 0 | 0 | 0 |
+| B1 (stand-in clips) | 16 | 0 | 0 | 0 | 0 |
+| B1+LLM (lookup planner) | 3 | 29 | 0 | 0 | 0 |
+
+  Lift needs reach + pick-lift chained: B1 alone never grasps (reaches in 24%), with the plan it lifts in 29%. The plan hurts push (switching reach → push mid-motion). Nothing composes into c1–c3.
+- **Privileged information:** RL experts and the scripted expert observe exact cube/target positions (21-D state): they are the teachers and the upper reference. Every SmolVLA model sees only the front and wrist images, 6-D proprioception (TCP pose, yaw, finger gap) and the prompt. Caveat for the README: B1+LLM switches instructions on a completion check computed from sim state, which is privileged help (allowed by the brief, makes B1+LLM stronger than on a real robot).
+- **What didn't work (3):** with the reward of fix 2, the vocabulary agent learned reach → pick-lift (99.7%) and then held the cube in the air (0/100 on the eval states, all failures at transport): carry credit only counted while grasped, and place-down always ends by opening, so any imprecise place-down lost reward. Raw C2 put red on blue in 90% of training episodes but never held success: the stay-near-the-cube term kept the open fingers jostling the stacked cube (speed ~0.09 m/s > 0.03 rest threshold). Fix: the cube's distance to its goal pose pays whether or not it is held; at the goal pose the grasp and stay-near terms switch off. Reward profile along the expert rises at every phase for c1, c2, c3. **All three RL runs restarted from scratch** (raw c1, raw c2, vocab c1) so raw and vocabulary use the identical reward.
+- Raw C2 had crashed once (Isaac `carb` mutex assertion while the GPU was overloaded); `--resume` added to `sim/train_rl.py`.
+- Videos: `media/09_b0_c1.mp4` (B0 wandering), `media/10_vocab_rl_c1_wip.mp4` (vocabulary agent holding the cube up, before fix 3).
+
+Next: evaluate the RL runs when they finish; then stand-in atomic clips (cut from the scripted expert, one skill per clip) for the B1 pipeline and the synthetic vocabulary.
