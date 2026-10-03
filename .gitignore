@@ -5,6 +5,9 @@ data/processed/
 *.mov
 *.MOV
 
+# downloaded robot model (python -m sim.fetch_assets)
+sim/assets/
+
 # training outputs
 runs/
 logs/
