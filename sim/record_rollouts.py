@@ -5,6 +5,10 @@ only, and writes one npz per episode in the replay format: front, wrist (T, H, W
 state (T, 6), action (T, A), prompt (the combined-task prompt), skill sentence.
 Raw-action policies record one frame per 0.1 s step (A = 5); vocabulary policies one frame
 per primitive, with action = [skill one-hot | z] (A = n_skills + latent_dim).
+DART-style noise (--noise): the executed action is perturbed (raw: dx..dyaw; vocabulary: z)
+while the recorded label is the expert's clean action, so the student sees states off the
+expert's path together with the correction. Without it, the distilled VLA could not recover
+from its own small errors (Oracle VLA: 6/100 on C1).
 
     PYTHONPATH=. ./isaaclab.sh -p sim/record_rollouts.py --headless --enable_cameras --task c1 \
         --policy scripted --episodes 500 --out data/processed/rollouts/oracle_c1
@@ -22,6 +26,7 @@ parser.add_argument("--batch", type=int, default=100)
 parser.add_argument("--out", required=True)
 parser.add_argument("--seed", type=int, default=100)
 parser.add_argument("--image_size", type=int, default=256)
+parser.add_argument("--noise", type=float, default=0.3, help="std of DART noise on executed actions (0 = off)")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 args.enable_cameras = True
@@ -85,7 +90,13 @@ def main():
                 r["action"].append(rec_action[i].cpu())
                 if names[i] and (not r["skills"] or r["skills"][-1] != names[i]):
                     r["skills"].append(names[i])
-            obs, *_ = env.step(action)
+            executed = action.clone()
+            if args.noise > 0:
+                if args.vocab:
+                    executed[:, len(env.skills):] += args.noise * torch.randn_like(executed[:, len(env.skills):])
+                else:
+                    executed[:, :4] += args.noise * torch.randn_like(executed[:, :4])
+            obs, *_ = env.step(executed)
             policy.update(env)
             new = env.episode_done & ~done
             for i in new.nonzero().squeeze(-1).tolist():

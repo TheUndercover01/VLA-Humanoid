@@ -18,6 +18,8 @@ parser.add_argument("--policy", default="scripted", help="scripted | rsl:<checkp
 parser.add_argument("--vocab", default=None, help="vocabulary for an rsl checkpoint trained with --action vocab")
 parser.add_argument("--vla_port", type=int, default=6011)
 parser.add_argument("--plan", action="store_true", help="vla: follow the planner's atomic prompts (B1+LLM)")
+parser.add_argument("--replan", type=int, default=3, help="vla: steps executed from each chunk before asking again")
+parser.add_argument("--val", action="store_true", help="validation layouts (seed 4321) instead of the eval states, for tuning")
 parser.add_argument("--name", default=None, help="model name in the CSV (default: --policy)")
 parser.add_argument("--seed", type=int, default=0, help="training seed of the policy, for the CSV")
 parser.add_argument("--out", default=None, help="CSV path (default runs/eval/<name>_<task>.csv)")
@@ -54,12 +56,15 @@ def make_policy(name, env):
         prompt = tasks.PROMPTS[args.task]
         # a vocabulary env step is a whole ~2 s primitive: ask for a new decision every step
         return VLAPolicy(args.vla_port, prompt, plan=plan(prompt) if args.plan else None,
-                         replan=1 if args.vocab else 10)
+                         replan=1 if args.vocab else args.replan)
     raise ValueError(f"unknown policy {name}")
 
 
 def main():
-    layouts = torch.load(STATES / f"{args.task}.pt")["layouts"]
+    if args.val:
+        layouts = tasks.sample_layouts(args.task, 100, torch.Generator().manual_seed(4321))
+    else:
+        layouts = torch.load(STATES / f"{args.task}.pt")["layouts"]
     n = len(layouts)
     vla = args.policy == "vla"
     cameras = args.video is not None or vla
