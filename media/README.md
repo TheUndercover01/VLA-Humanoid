@@ -11,5 +11,9 @@ The mp4 files are not committed (`*.mp4` is gitignored); regenerate them with th
 | `04_scripted_c1.mp4` | 3 Oct | Scripted expert, C1 pick and place on the target. 100/100. | `sim/eval.py --task c1 ...` |
 | `05_scripted_c2.mp4` | 3 Oct | Scripted expert, C2 stack red on blue. 100/100. | `sim/eval.py --task c2 ...` |
 | `06_scripted_c3.mp4` | 3 Oct | Scripted expert, C3: push blue onto the target, then stack red on it. Two successful episodes; the expert succeeds on 89/100 (25 s limit). | `sim/eval.py --task c3 --video_envs <ids> ...` |
+| `07_raw_rl_c1_it900.mp4` | 3 Oct | Raw-action RL on C1 mid-training (reward fix 1): carries the cube onto the target and never lets go. A "what didn't work" clip. | `sim/eval.py --policy rsl:<ckpt> ...` |
+| `08_vocab_action.mp4` | 3 Oct | The vocabulary action: top row z = 0 (each skill's mean motion), bottom row random z. One RL step = one ~2 s motion. | `sim/test_vocab_action.py --video ...` |
+| `09_b0_c1.mp4` | 3 Oct | B0, untrained SmolVLA on C1: the arm wanders; 0/100. | `sim/eval.py --policy vla ...` with `vla/server.py --policy base` |
+| `10_vocab_rl_c1_wip.mp4` | 3 Oct | Vocabulary RL on C1 mid-training (reward fix 2): reach → pick-lift, then holds the cube up. A "what didn't work" clip. | `sim/eval.py --policy rsl:<ckpt> --vocab ...` |
 
 All commands run as `PYTHONPATH=. <IsaacLab>/isaaclab.sh -p <script> --headless --enable_cameras`. Camera rendering only works on `cuda:0` (Isaac Sim 5.1 limitation); training can use either GPU.
