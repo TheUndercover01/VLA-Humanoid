@@ -57,4 +57,11 @@ Findings and changes (all feed the README's "what didn't work"):
 - **Stock lift reward is seed-sensitive** (Phase 0): plan several seeds for RL.
 - Known issue: with cameras on, physics is not bit-identical to headless (push 98% vs 100%). VLA evals run with cameras, so compare models under the same setting.
 
-Next: Phase 1.4, raw-action PPO experts (B2 teachers) on C1 and C2, learning curves against simulated seconds.
+### Sat 3 Oct: Phase 1.4 started (raw-action PPO, the B2 teachers)
+- `sim/train_rl.py` (rsl_rl PPO, 4096 envs, 32 steps/iter, MLP 256-128-64, obs normalisation; config in `sim/rl_cfg.py`). 2.3 s/iteration, i.e. ~13,000 simulated seconds per iteration. Logs success and per-stage reach rates. `analysis/learning_curves.py`: success vs simulated hours, per task and action space.
+- `sim/eval.py --policy rsl:<checkpoint>` evaluates a trained policy on the eval states.
+- **What didn't work: the prototype's reward makes PPO hover over the goal.** First C1/C2 runs (seed 1, ~600-700 iterations): reach, grasp, lift and transport in ~100% of episodes, place ~0%, success 0%. "Held" only counted while the cube was ≥ 2 cm up, so lowering it onto the target lost reward before any place reward appeared (≈5.5/step hovering vs ≈3 while lowering). Also, success counted "gripper open" as a gap > 4 cm, which is true while holding a 5 cm cube. Fixed: grasp detected by contact geometry, carry rewarded by 3-D distance to the resting pose, an at-goal term that pays whether or not the cube is held, and release = gap > 6.5 cm. Scripted expert still 100% on C1/C2 under the stricter check. Training also switched from success termination with a one-off +20 to a +5 bonus for every step in the success state (eval still terminates once success has held for 0.5 s). Runs restarted.
+- Training can use either GPU; **camera rendering only works on cuda:0** in Isaac Sim 5.1.
+- Videos: `media/06_scripted_c3.mp4` added (scripted C3, two successful episodes).
+
+Next: finish the raw RL runs and evaluate them on the eval states; then stand-in atomic clips (cut from the scripted expert, one skill per clip) for the B1 pipeline and the synthetic vocabulary.

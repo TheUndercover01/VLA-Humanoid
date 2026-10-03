@@ -28,6 +28,7 @@ REGION = ((-0.12, -0.20), (0.18, 0.20))      # cubes and target are placed in th
 PUSH_RED_REGION = ((-0.12, -0.15), (0.08, 0.15))
 TARGET_BOX = ((-0.15, -0.22), (0.24, 0.22))  # push targets must stay inside this box
 ON_TARGET = 0.03                             # xy tolerance for "cube is on the target"
+RELEASED = 0.065                             # finger gap (m) beyond the 5 cm cube: it has been let go
 BASE_XY = (-0.5, 0.0)                        # robot base in the table frame
 PUSH_REACH = (0.36, 0.74)                    # the pusher's start point must be this far from the base
 SUCCESS_HOLD = 5                         # control steps (0.5 s)
@@ -87,7 +88,7 @@ def success(task, s):
     if task == "push":
         return (d_xy < 0.03) & (red[:, 2] < 0.04)
     rest = s["red_speed"] < 0.03
-    open_ok = s["grip"] > 0.04
+    open_ok = s["grip"] > RELEASED
     if task == "c2":
         return (d_xy < 0.025) & ((red[:, 2] - g[:, 2]).abs() < 0.012) & rest & open_ok
     return (d_xy < ON_TARGET) & (red[:, 2] < 0.04) & rest & open_ok
@@ -130,8 +131,13 @@ def failure_stage(task, reached, knocked):
     return out
 
 
-def reward(task, s, done_ok):
-    """Dense shaped reward (reach -> grasp -> lift -> transport -> place) plus a success bonus."""
+SUCCESS_REWARD = 5.0
+
+
+def reward(task, s, ok):
+    """Dense shaped reward (reach -> grasp -> lift -> transport -> place) plus a bonus for every
+    step in the success state. A per-step bonus (rather than a one-off bonus with termination,
+    as in the prototype) keeps finishing worth more than hovering near the goal."""
     red, tcp, g = s["red"], s["tcp"], goal(task, s)
     d_reach = (tcp - (red + torch.tensor([0.0, 0.0, 0.01], device=red.device))).norm(dim=-1)
     held = ((red[:, 2] > CUBE_HALF + 0.02) & (d_reach < 0.05) & (s["grip"] < 0.07)).float()
@@ -150,9 +156,19 @@ def reward(task, s, done_ok):
             d_tcp_blue = (tcp - blue).norm(dim=-1)
             rew = (1 - on) * 0.5 * (1 - torch.tanh(8 * d_tcp_blue)) + 2.0 * (1 - torch.tanh(6 * d_blue))
             rew = rew + on * 0.5 * (1 - torch.tanh(8 * d_reach))
-            held = held * on
-        rew = rew + 2.0 * held + 3.0 * held * (1 - torch.tanh(5 * d_goal))
-        at_goal = ((d_goal < 0.04) & ((red[:, 2] - g[:, 2]).abs() < 0.015)).float()
-        rew = rew + 4.0 * at_goal * (s["grip"] / 0.08)
+        # Grasp is detected by contact geometry, not height, and carrying is rewarded by the 3-D
+        # distance to the resting pose at the goal, so lowering the cube is never penalised.
+        # "At goal" pays whether or not the cube is still held, so letting go there is a gain.
+        # (The prototype's height-based "held" made the policy hover over the goal.)
+        grasped = ((tcp - red).norm(dim=-1) < 0.03) & (s["grip"] > 0.03) & (s["grip"] < RELEASED)
+        if task == "c3":
+            grasped = grasped & (on > 0)
+        grasped = grasped.float()
+        d3 = (red - g).norm(dim=-1)
+        rew = rew + 1.0 * grasped + 3.0 * grasped * (1 - torch.tanh(5 * d3))
+        at_goal = ((d_goal < 0.02) & ((red[:, 2] - g[:, 2]).abs() < 0.01)).float()
+        if task == "c3":
+            at_goal = at_goal * on
+        rew = rew + at_goal * (3.0 + 2.0 * s["grip"] / 0.08)
     rew = rew - 0.01 * ((s["cmd"] - tcp) ** 2).sum(-1)
-    return rew + 20.0 * done_ok.float()
+    return rew + SUCCESS_REWARD * ok.float()

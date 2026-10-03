@@ -11,7 +11,7 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--task", required=True)
-parser.add_argument("--policy", default="scripted", help="scripted")
+parser.add_argument("--policy", default="scripted", help="scripted | rsl:<checkpoint.pt>")
 parser.add_argument("--name", default=None, help="model name in the CSV (default: --policy)")
 parser.add_argument("--seed", type=int, default=0, help="training seed of the policy, for the CSV")
 parser.add_argument("--out", default=None, help="CSV path (default runs/eval/<name>_<task>.csv)")
@@ -35,9 +35,12 @@ from sim.video import Recorder  # noqa: E402
 STATES = Path(__file__).parent / "eval_states"
 
 
-def make_policy(name):
+def make_policy(name, env):
     if name == "scripted":
         return ScriptedExpert()
+    if name.startswith("rsl:"):
+        from sim.rl_cfg import RslPolicy
+        return RslPolicy(name[4:], env)
     raise ValueError(f"unknown policy {name}")
 
 
@@ -49,8 +52,8 @@ def main():
     cfg.sim.device = args.device
     env = PandaTaskEnv(cfg)
     env.set_layouts(layouts)
+    policy = make_policy(args.policy, env)
     obs, _ = env.reset()
-    policy = make_policy(args.policy)
     policy.reset(env)
 
     name = args.name or args.policy
@@ -64,7 +67,7 @@ def main():
     sentences = [[] for _ in range(n)]
     for t in range(int(env.max_episode_length) + 1):
         action, skill = policy.act(env)
-        for i, k in enumerate(skill.tolist()):
+        for i, k in enumerate(skill.tolist() if skill is not None else []):
             if not captured[i] and (not sentences[i] or sentences[i][-1] != SKILLS[k]):
                 sentences[i].append(SKILLS[k])
         obs, _, _, _, _ = env.step(action)

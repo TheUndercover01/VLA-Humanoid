@@ -70,6 +70,7 @@ def _look_at(pos, target, up=(0.0, 0.0, 1.0)):
 class PandaTaskEnvCfg(DirectRLEnvCfg):
     task: str = "c1"
     cameras: bool = False
+    terminate_on_success: bool = True     # eval: end once success has held; RL training: keep going
     image_size: int = 256
 
     episode_length_s = 15.0               # 150 control steps
@@ -228,6 +229,7 @@ class PandaTaskEnv(DirectRLEnv):
 
     # ---------- action ----------
     def _pre_physics_step(self, actions):
+        self.extras["log"] = {}
         a = actions.clamp(-1.0, 1.0)
         pos = (self.cmd + a[:, :3] * MAX_DXYZ).clamp(self.ws_low, self.ws_high)
         # keep the command inside the measured vertical-gripper reach (sim/probe_reach.py)
@@ -283,12 +285,12 @@ class PandaTaskEnv(DirectRLEnv):
         self.jerk_cnt += valid * 3
         f = self.contact.data.net_forces_w_history.norm(dim=-1).amax(dim=1)   # (n, 2 cubes)
         self.peak_force = torch.maximum(self.peak_force, f.amax(-1))
-        terminated = self.done_ok | self.knocked
+        terminated = (self.done_ok & self.cfg.terminate_on_success) | self.knocked
         truncated = self.episode_length_buf >= self.max_episode_length - 1
         return terminated, truncated
 
     def _get_rewards(self):
-        return tasks.reward(self.task, self.state(), self.done_ok)
+        return tasks.reward(self.task, self.state(), self.ok)
 
     def _get_observations(self):
         s = self.state()
@@ -320,6 +322,12 @@ class PandaTaskEnv(DirectRLEnv):
         self.last_reached[done_ids] = self.reached[done_ids]
         self.last_knocked[done_ids] = self.knocked[done_ids]
         self.episode_done[done_ids] = True
+        if len(done_ids) and "log" in self.extras:
+            log = self.extras["log"]
+            log["Episode/success"] = self.done_ok[done_ids].float()
+            log["Episode/knocked"] = self.knocked[done_ids].float()
+            for j, name in enumerate(tasks.STAGES[self.task]):
+                log[f"Stage/{name}"] = self.reached[done_ids, j].float()
         super()._reset_idx(env_ids)
 
         k = len(env_ids)
