@@ -64,4 +64,11 @@ Findings and changes (all feed the README's "what didn't work"):
 - Training can use either GPU; **camera rendering only works on cuda:0** in Isaac Sim 5.1.
 - Videos: `media/06_scripted_c3.mp4` added (scripted C3, two successful episodes).
 
+### Sat 3 Oct: C3 un-parked and fixed (user request)
+Scripted expert on the eval states: push 100, lift 100, c1 100, c2 100, **c3 89** (was 68).
+- C3 time limit 15 s → 25 s (`tasks.EPISODE_S`): it chains push + pick + place; successful episodes take 9.7 s on average, up to ~20 s.
+- C3 layouts: the pushing spot behind blue must be 0.36–0.68 m from the base (was 0.74; pushes from the edge of reach failed). Eval states for c3 regenerated (no model evaluated yet).
+- Expert: the grasp follows red's live pose and yaw (the push nudged or spun red, and the old plan grasped at its start position); grasp yaw kept in ±45° and push yaw in ±2 rad so joint 7 stays in range (yaw ±135° made the hand tilt and stall); for C3's long pushes, if blue drifts off the line the gripper lifts, goes round behind it and pushes again (this hurt the short push task, 100 → 97, so it is only used for C3).
+- Expert changes were debugged on training layouts (seeds 555, 777, 999: 92–97%); eval states only for the final numbers. Remaining C3 failures: blue slides off sideways at the table edge, a grasp landing on top of the cube, stacking that shifts blue > 3 cm off the target.
+
 Next: finish the raw RL runs and evaluate them on the eval states; then stand-in atomic clips (cut from the scripted expert, one skill per clip) for the B1 pipeline and the synthetic vocabulary.

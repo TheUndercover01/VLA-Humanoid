@@ -30,7 +30,8 @@ TARGET_BOX = ((-0.15, -0.22), (0.24, 0.22))  # push targets must stay inside thi
 ON_TARGET = 0.03                             # xy tolerance for "cube is on the target"
 RELEASED = 0.065                             # finger gap (m) beyond the 5 cm cube: it has been let go
 BASE_XY = (-0.5, 0.0)                        # robot base in the table frame
-PUSH_REACH = (0.36, 0.74)                    # the pusher's start point must be this far from the base
+PUSH_REACH = (0.36, 0.68)                    # the pusher's start point must be this far from the base
+EPISODE_S = {"push": 15.0, "lift": 15.0, "c1": 15.0, "c2": 15.0, "c3": 25.0}   # C3 chains push + pick + place
 SUCCESS_HOLD = 5                         # control steps (0.5 s)
 
 

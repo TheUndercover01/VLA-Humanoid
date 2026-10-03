@@ -73,7 +73,7 @@ class PandaTaskEnvCfg(DirectRLEnvCfg):
     terminate_on_success: bool = True     # eval: end once success has held; RL training: keep going
     image_size: int = 256
 
-    episode_length_s = 15.0               # 150 control steps
+    episode_length_s = 15.0               # overwritten per task from tasks.EPISODE_S
     decimation = 10
     action_space = 5
     observation_space = 21
@@ -129,6 +129,7 @@ class PandaTaskEnv(DirectRLEnv):
 
     def __init__(self, cfg: PandaTaskEnvCfg, render_mode=None, **kwargs):
         assert cfg.task in tasks.TASKS, cfg.task
+        cfg.episode_length_s = tasks.EPISODE_S[cfg.task]
         super().__init__(cfg, render_mode, **kwargs)
         n, dev = self.num_envs, self.device
         self.task = cfg.task
