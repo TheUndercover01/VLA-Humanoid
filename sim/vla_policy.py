@@ -63,7 +63,9 @@ class VLAPolicy:
             r = self.conn.recv()
             self.queue = torch.from_numpy(np.frombuffer(r["actions"], np.float32).reshape(r["shape"]).copy()).to(env.device)
             self.k = 0
-        a = self.queue[:, self.k].clamp(-1, 1)
+        a = self.queue[:, self.k]
+        if a.shape[1] == 5:                 # raw action; vocabulary actions are [skill scores | z]
+            a = a.clamp(-1, 1)
         self.k += 1
         skill = None
         if self.plan is not None:

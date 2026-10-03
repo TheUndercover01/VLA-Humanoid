@@ -52,7 +52,9 @@ def make_policy(name, env):
         from sim.vla_policy import VLAPolicy
         from vla.llm_planner import plan
         prompt = tasks.PROMPTS[args.task]
-        return VLAPolicy(args.vla_port, prompt, plan=plan(prompt) if args.plan else None)
+        # a vocabulary env step is a whole ~2 s primitive: ask for a new decision every step
+        return VLAPolicy(args.vla_port, prompt, plan=plan(prompt) if args.plan else None,
+                         replan=1 if args.vocab else 10)
     raise ValueError(f"unknown policy {name}")
 
 

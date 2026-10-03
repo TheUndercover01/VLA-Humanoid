@@ -3,7 +3,9 @@
 Run in the lerobot env:
     python -m vla.build_dataset --src data/processed/replays/standin --repo_id local/b1_standin \
         --root /media/storage/ayush/vla_data/lerobot/b1_standin
-Each npz is one episode: front, wrist (T, H, W, 3) uint8, state (T, 6), action (T, 5), prompt.
+Each npz is one episode: front, wrist (T, H, W, 3) uint8, state (T, 6), action (T, A), prompt.
+A = 5 for the raw action (10 fps); vocabulary rollouts (one frame per ~2 s primitive) store
+[skill one-hot | z] and use --fps 1 (LeRobot needs an integer rate; only the frame order matters).
 """
 import argparse
 import shutil
@@ -12,9 +14,8 @@ from pathlib import Path
 import numpy as np
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
-FPS = 10
 STATE_NAMES = ["tcp_x", "tcp_y", "tcp_z", "sin_yaw", "cos_yaw", "gripper_gap"]
-ACTION_NAMES = ["dx", "dy", "dz", "dyaw", "grip"]
+RAW_ACTION_NAMES = ["dx", "dy", "dz", "dyaw", "grip"]
 
 
 def main():
@@ -22,21 +23,25 @@ def main():
     ap.add_argument("--src", required=True)
     ap.add_argument("--repo_id", required=True)
     ap.add_argument("--root", required=True)
+    ap.add_argument("--fps", type=int, default=10)
+    ap.add_argument("--max_episodes", type=int, default=None)
     args = ap.parse_args()
 
-    files = sorted(Path(args.src).glob("*.npz"))
+    files = sorted(Path(args.src).glob("*.npz"))[:args.max_episodes]
     first = np.load(files[0])
+    a_dim = first["action"].shape[1]
+    action_names = RAW_ACTION_NAMES if a_dim == 5 else [f"a{i}" for i in range(a_dim)]
     h, w = first["front"].shape[1:3]
     img = {"dtype": "video", "shape": (h, w, 3), "names": ["height", "width", "channels"]}
     features = {
         "observation.images.front": img,
         "observation.images.wrist": img,
         "observation.state": {"dtype": "float32", "shape": (6,), "names": STATE_NAMES},
-        "action": {"dtype": "float32", "shape": (5,), "names": ACTION_NAMES},
+        "action": {"dtype": "float32", "shape": (a_dim,), "names": action_names},
     }
     if Path(args.root).exists():
         shutil.rmtree(args.root)
-    ds = LeRobotDataset.create(args.repo_id, FPS, features, root=args.root, robot_type="franka_panda_sim",
+    ds = LeRobotDataset.create(args.repo_id, args.fps, features, root=args.root, robot_type="franka_panda_sim",
                                use_videos=True)
     for f in files:
         ep = np.load(f, allow_pickle=True)
