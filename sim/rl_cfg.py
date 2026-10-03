@@ -1,6 +1,8 @@
 """rsl_rl PPO settings and checkpoint loading for the RL experts (import after the app is launched)."""
 from importlib import metadata
 
+import torch
+
 from rsl_rl.runners import OnPolicyRunner
 
 from isaaclab.utils import configclass
@@ -69,7 +71,8 @@ class RslPolicy:
         pass
 
     def act(self, env):
-        return self.pi(self.wrapper.get_observations()), None
+        with torch.inference_mode():
+            return self.pi(self.wrapper.get_observations()).clone(), None
 
     def sample(self, obs):
         """Stochastic action, as during training."""
