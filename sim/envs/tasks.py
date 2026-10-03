@@ -135,10 +135,11 @@ def failure_stage(task, reached, knocked):
 SUCCESS_REWARD = 5.0
 
 
-def reward(task, s, ok):
+def reward(task, s, held_ok):
     """Dense shaped reward (reach -> grasp -> lift -> transport -> place) plus a bonus for every
-    step in the success state. A per-step bonus (rather than a one-off bonus with termination,
-    as in the prototype) keeps finishing worth more than hovering near the goal."""
+    step once success has held for SUCCESS_HOLD steps. A per-step bonus (rather than a one-off
+    bonus with termination, as in the prototype) keeps finishing worth more than hovering, and
+    requiring the hold stops a policy from flickering in and out of the success state."""
     red, tcp, g = s["red"], s["tcp"], goal(task, s)
     d_reach = (tcp - (red + torch.tensor([0.0, 0.0, 0.01], device=red.device))).norm(dim=-1)
     held = ((red[:, 2] > CUBE_HALF + 0.02) & (d_reach < 0.05) & (s["grip"] < 0.07)).float()
@@ -159,17 +160,17 @@ def reward(task, s, ok):
             rew = rew + on * 0.5 * (1 - torch.tanh(8 * d_reach))
         # Grasp is detected by contact geometry, not height, and carrying is rewarded by the 3-D
         # distance to the resting pose at the goal, so lowering the cube is never penalised.
-        # "At goal" pays whether or not the cube is still held, so letting go there is a gain.
-        # (The prototype's height-based "held" made the policy hover over the goal.)
-        grasped = ((tcp - red).norm(dim=-1) < 0.03) & (s["grip"] > 0.03) & (s["grip"] < RELEASED)
+        # Once the cube is at the goal pose only the at-goal term pays, and it grows as the
+        # gripper opens, so letting go is always a gain. (The prototype's height-based "held" made
+        # PPO hover over the goal; paying grasp and success terms side by side made it hold the
+        # gripper exactly at the release threshold.)
+        at_goal = (d_goal < 0.02) & ((red[:, 2] - g[:, 2]).abs() < 0.01)
+        grasped = ((tcp - red).norm(dim=-1) < 0.03) & (s["grip"] > 0.03) & (s["grip"] < RELEASED) & ~at_goal
         if task == "c3":
-            grasped = grasped & (on > 0)
-        grasped = grasped.float()
+            grasped, at_goal = grasped & (on > 0), at_goal & (on > 0)
+        grasped, at_goal = grasped.float(), at_goal.float()
         d3 = (red - g).norm(dim=-1)
         rew = rew + 1.0 * grasped + 3.0 * grasped * (1 - torch.tanh(5 * d3))
-        at_goal = ((d_goal < 0.02) & ((red[:, 2] - g[:, 2]).abs() < 0.01)).float()
-        if task == "c3":
-            at_goal = at_goal * on
-        rew = rew + at_goal * (3.0 + 2.0 * s["grip"] / 0.08)
+        rew = rew + at_goal * (3.0 + 3.0 * s["grip"] / 0.08)
     rew = rew - 0.01 * ((s["cmd"] - tcp) ** 2).sum(-1)
-    return rew + SUCCESS_REWARD * ok.float()
+    return rew + SUCCESS_REWARD * held_ok.float()

@@ -60,5 +60,9 @@ class RslPolicy:
     def act(self, env):
         return self.pi(self.wrapper.get_observations()), None
 
+    def sample(self, obs):
+        """Stochastic action, as during training."""
+        return self.pi(obs, stochastic_output=True)
+
     def update(self, env):
         pass

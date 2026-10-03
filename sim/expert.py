@@ -20,7 +20,8 @@ PUSH_SPEED = 0.5                # fraction of MAX_DXYZ: push slowly so the cube 
 SKILLS = ["reach", "push", "pick-lift", "place-down"]
 OPEN, CLOSED = 1.0, -1.0
 PUSH_GRIP = -0.25               # 3 cm finger gap: both fingertips touch the cube face, which cannot pass between
-ABS, REL_BLUE, REL_RED = 0, 1, 2  # waypoint xy is absolute, or an offset from the blue / red cube's live position
+# waypoint xy: absolute, an offset from the blue / red cube's live position, or the current command (move vertically)
+ABS, REL_BLUE, REL_RED, HOLD_XY = 0, 1, 2, 3
 
 
 def yaw_of(q):
@@ -63,11 +64,13 @@ class ScriptedExpert:
             plan.append((pos, yaw, grip, speed, tol, wait, skill, rel, push_obj))
 
         def pick():
-            # follows the red cube's live pose and yaw: an earlier push may have nudged or spun it
+            # the approach follows the red cube's live pose and yaw (an earlier push may have nudged or
+            # spun it); once the fingers close, the hand only moves vertically (following the held cube
+            # would chase its own offset in the fingers)
             add([0, 0, HOVER], OPEN, 0.02, rel=REL_RED)
             add([0, 0, GRASP_Z], OPEN, 0.008, rel=REL_RED)
-            add([0, 0, GRASP_Z], CLOSED, 0.02, wait=6, skill="pick-lift", rel=REL_RED)   # timed: fingers close
-            add([0, 0, CARRY_Z], CLOSED, 0.015, skill="pick-lift", rel=REL_RED)
+            add([0, 0, GRASP_Z], CLOSED, 0.02, wait=6, skill="pick-lift", rel=HOLD_XY)   # timed: fingers close
+            add([0, 0, CARRY_Z], CLOSED, 0.015, skill="pick-lift", rel=HOLD_XY)
 
         def place(x, y, z, rel=ABS):
             add([x, y, CARRY_Z], CLOSED, 0.015, skill="place-down", rel=rel)
@@ -116,7 +119,9 @@ class ScriptedExpert:
         rel = self.rel[idx, ph]
         wp[rel == REL_BLUE, :2] += blue_xy[rel == REL_BLUE]
         wp[rel == REL_RED, :2] += s["red"][rel == REL_RED, :2]
+        wp[rel == HOLD_XY, :2] = env.cmd[rel == HOLD_XY, :2]
         yaw = self.yaw[idx, ph].clone()
+        yaw[rel == HOLD_XY] = env.cmd_yaw[rel == HOLD_XY]
         # grasp yaw: the red cube's yaw mod 90 degrees, kept in [-45, 45] so the wrist (joint 7) can reach it
         grasp_yaw = torch.remainder(yaw_of(env.red.data.root_quat_w) + torch.pi / 4, torch.pi / 2) - torch.pi / 4
         yaw[rel == REL_RED] = grasp_yaw[rel == REL_RED]

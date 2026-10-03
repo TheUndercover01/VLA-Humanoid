@@ -291,7 +291,7 @@ class PandaTaskEnv(DirectRLEnv):
         return terminated, truncated
 
     def _get_rewards(self):
-        return tasks.reward(self.task, self.state(), self.ok)
+        return tasks.reward(self.task, self.state(), self.done_ok)
 
     def _get_observations(self):
         s = self.state()
