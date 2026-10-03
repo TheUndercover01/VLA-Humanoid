@@ -9,11 +9,12 @@ from sim.envs.tasks import CUBE_HALF, RELEASED
 
 
 def state(red, blue=(0.1, -0.15, CUBE_HALF), target=(0.0, 0.0, 0.0), tcp=(0.0, 0.0, 0.25), grip=0.08,
-          speed=0.0, cmd=None):
+          speed=0.0, cmd=None, lifted=True):
     t = lambda v: torch.tensor([v], dtype=torch.float32)  # noqa: E731
     tcp = t(tcp)
     return {"red": t(red), "blue": t(blue), "target": t(target), "tcp": tcp, "grip": t(grip),
-            "red_speed": t(speed), "cmd": tcp.clone() if cmd is None else t(cmd)}
+            "red_speed": t(speed), "cmd": tcp.clone() if cmd is None else t(cmd),
+            "was_lifted": torch.tensor([lifted])}
 
 
 def test_c1_success_needs_cube_on_target_resting_and_released():
@@ -23,6 +24,7 @@ def test_c1_success_needs_cube_on_target_resting_and_released():
     assert not tasks.success("c1", state(on, speed=0.1))                     # still moving
     assert not tasks.success("c1", state(on, grip=0.05))                     # fingers still on the 5 cm cube
     assert not tasks.success("c1", state((0.0, 0.0, 0.08)))                  # held above the target
+    assert not tasks.success("c1", state(on, lifted=False))                  # pushed there, never picked up
 
 
 def test_c2_success_needs_red_on_blue():
@@ -108,3 +110,11 @@ def test_reward_does_not_drop_when_lowering_or_releasing_near_goal():
     dropped_near = state((0.02, 0.0, CUBE_HALF), tcp=(0.0, 0.0, 0.16), grip=0.08)
     no = torch.tensor([False])
     assert tasks.reward("c1", dropped_near, no) > tasks.reward("c1", carried_high, no)
+
+
+def test_c1_pushing_to_the_goal_earns_less_than_lifting():
+    """The vocabulary agent solved C1 by pushing; goal credit now needs the cube picked up first."""
+    no = torch.tensor([False])
+    pushed_to_goal = state((0.0, 0.0, CUBE_HALF), tcp=(-0.04, 0.0, 0.03), grip=0.03, lifted=False)
+    lifted_far = state((0.15, 0.1, 0.10), tcp=(0.15, 0.1, 0.10), grip=0.05, lifted=True)
+    assert tasks.reward("c1", lifted_far, no) > tasks.reward("c1", pushed_to_goal, no)

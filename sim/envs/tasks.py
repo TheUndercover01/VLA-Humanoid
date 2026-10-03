@@ -29,6 +29,7 @@ PUSH_RED_REGION = ((-0.12, -0.15), (0.08, 0.15))
 TARGET_BOX = ((-0.15, -0.22), (0.24, 0.22))  # push targets must stay inside this box
 ON_TARGET = 0.03                             # xy tolerance for "cube is on the target"
 RELEASED = 0.065                             # finger gap (m) beyond the 5 cm cube: it has been let go
+LIFTED = CUBE_HALF + 0.05                    # C1 must pick the cube up: its centre was at least 5 cm off the table
 BASE_XY = (-0.5, 0.0)                        # robot base in the table frame
 HOME_TCP = (0.0, 0.0, 0.25)                  # TCP at the robot's home joint pose (sim/probe_reach.py)
 PUSH_REACH = (0.36, 0.68)                    # the pusher's start point must be this far from the base
@@ -79,7 +80,8 @@ def goal(task, s):
 def success(task, s):
     """Instantaneous success; the env requires it to hold for SUCCESS_HOLD steps.
 
-    s: dict of (n, 3) tcp, red, blue, target, cmd and (n,) grip (finger gap, m), red_speed.
+    s: dict of (n, 3) tcp, red, blue, target, cmd and (n,) grip (finger gap, m), red_speed, and
+    was_lifted (n,) bool: the red cube has been above LIFTED at some point this episode.
     """
     red, g = s["red"], goal(task, s)
     d_xy = (red[:, :2] - g[:, :2]).norm(dim=-1)
@@ -93,7 +95,8 @@ def success(task, s):
     open_ok = s["grip"] > RELEASED
     if task == "c2":
         return (d_xy < 0.025) & ((red[:, 2] - g[:, 2]).abs() < 0.012) & rest & open_ok
-    return (d_xy < ON_TARGET) & (red[:, 2] < 0.04) & rest & open_ok
+    # C1 says "pick up ... and place": pushing the cube onto the target does not count
+    return (d_xy < ON_TARGET) & (red[:, 2] < 0.04) & rest & open_ok & s["was_lifted"]
 
 
 def blue_on_target(s):
@@ -170,9 +173,18 @@ def reward(task, s, held_ok):
         at_goal = (d_goal < 0.02) & ((red[:, 2] - g[:, 2]).abs() < 0.01)
         grasped = ((tcp - red).norm(dim=-1) < 0.03) & (s["grip"] > 0.03) & (s["grip"] < RELEASED) & ~at_goal
         stage_on = torch.ones_like(d_goal)
+        if task == "c1":
+            # goal credit only once the cube has been picked up (otherwise RL pushes it there);
+            # before that, reward lifting it while it is grasped
+            lifted = s["was_lifted"].float()
+            stage_on = lifted
+            grasped_now = ((tcp - red).norm(dim=-1) < 0.03) & (s["grip"] > 0.03) & (s["grip"] < RELEASED)
+            rew = rew + 2.0 * grasped_now.float() * (1 - lifted) * ((red[:, 2] - CUBE_HALF) / 0.05).clamp(0, 1)
         if task == "c3":
             stage_on = on
             grasped, at_goal = grasped & (on > 0), at_goal & (on > 0)
+        if task == "c1":
+            at_goal = at_goal & (stage_on > 0)
         grasped, at_goal = grasped.float(), at_goal.float()
         d3 = (red - g).norm(dim=-1)
         rew = rew - 0.5 * (1 - torch.tanh(8 * d_reach)) * at_goal * stage_on

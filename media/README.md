@@ -15,5 +15,6 @@ The mp4 files are not committed (`*.mp4` is gitignored); regenerate them with th
 | `08_vocab_action.mp4` | 3 Oct | The vocabulary action: top row z = 0 (each skill's mean motion), bottom row random z. One RL step = one ~2 s motion. | `sim/test_vocab_action.py --video ...` |
 | `09_b0_c1.mp4` | 3 Oct | B0, untrained SmolVLA on C1: the arm wanders; 0/100. | `sim/eval.py --policy vla ...` with `vla/server.py --policy base` |
 | `10_vocab_rl_c1_wip.mp4` | 3 Oct | Vocabulary RL on C1 mid-training (reward fix 2): reach → pick-lift, then holds the cube up. A "what didn't work" clip. | `sim/eval.py --policy rsl:<ckpt> --vocab ...` |
+| `11_vocab_rl_c1_push_vs_lift.mp4` | 3 Oct | Vocabulary RL on C1 (before the lift requirement): top row pushes the cube onto the target, bottom row picks it up and places it. Both counted as success under the old C1 rule. | `sim/eval.py --policy rsl:<ckpt> --vocab ... --video_envs 0,2` |
 
 All commands run as `PYTHONPATH=. <IsaacLab>/isaaclab.sh -p <script> --headless --enable_cameras`. Camera rendering only works on `cuda:0` (Isaac Sim 5.1 limitation); training can use either GPU.

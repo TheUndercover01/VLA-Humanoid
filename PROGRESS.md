@@ -103,4 +103,11 @@ Scripted expert on the eval states: push 100, lift 100, c1 100, c2 100, **c3 89*
 - Raw C2 had crashed once (Isaac `carb` mutex assertion while the GPU was overloaded); `--resume` added to `sim/train_rl.py`.
 - Videos: `media/09_b0_c1.mp4` (B0 wandering), `media/10_vocab_rl_c1_wip.mp4` (vocabulary agent holding the cube up, before fix 3).
 
+### Sat 3 Oct (night): C1 RL solved, but by pushing; C1 now requires a lift (user decision)
+- With reward fix 3, C1 RL works: raw-action PPO reached 98% training success (iteration ~1750); vocabulary PPO (stand-in vocabulary, 250 iterations) scored **81/100 on the eval states**.
+- **What didn't work (4): both agents mostly pushed the cube onto the target instead of picking it up.** Skill sentences of the vocabulary agent were mostly `reach > push > reach`; re-scored with "the cube must have been lifted ≥ 5 cm", it drops to **19/100** (58 episodes never grasp), and the raw agent's last checkpoint gets **47/100**. Fix 3 made the cube's distance to the goal pay whether or not it is held, which made pushing the cheap solution. Video: `media/11_vocab_rl_c1_push_vs_lift.mp4` (top: pushed success, bottom: picked and placed). A finding for the README: with coarse 2 s primitives, RL preferred pushing even more often (~75% of successes) than with raw actions (~50%).
+- **C1 redefined (user decision):** success also needs the cube to have been lifted ≥ 5 cm at some point (`tasks.LIFTED`, latched per episode in the env as `was_lifted`), matching the prompt "pick up ... and place". C1 reward: goal and at-goal credit only after the lift, plus a lift bonus while grasped before it. Scripted expert still 100/100 on C1; reward profile rises at every phase; 22 tests pass (new: pushing to the goal earns less than a lifted cube far away). C1 RL (raw and vocabulary) restarted. C2 and C3 cannot be solved by pushing and are unchanged. B0/B1 C1 numbers were 0 and stay 0.
+- Oracle distillation data recorded: 500 successful scripted episodes each for c1, c2, c3 (c3 needed 600 tries), with front/wrist images; LeRobot dataset being built.
+- RL runs now: raw c1 + raw c2 (GPU 0), vocab c1 + vocab c2 (GPU 1).
+
 Next: evaluate the RL runs when they finish; then stand-in atomic clips (cut from the scripted expert, one skill per clip) for the B1 pipeline and the synthetic vocabulary.

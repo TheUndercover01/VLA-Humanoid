@@ -156,6 +156,7 @@ class PandaTaskEnv(DirectRLEnv):
         self.ok = torch.zeros(n, dtype=torch.bool, device=dev)
         self.done_ok = torch.zeros(n, dtype=torch.bool, device=dev)
         self.succ_latch = torch.zeros(n, dtype=torch.bool, device=dev)   # success held at some tick of this step
+        self.was_lifted = torch.zeros(n, dtype=torch.bool, device=dev)   # red cube picked up this episode (C1)
         self.rew_acc = torch.zeros(n, device=dev)
         self.ticks = torch.zeros(n, dtype=torch.long, device=dev)        # control ticks in this episode
         self._sub = 0
@@ -229,6 +230,7 @@ class PandaTaskEnv(DirectRLEnv):
             "target": self.to_table(self.target.data.root_pos_w),
             "grip": self.grip_gap(),
             "red_speed": self.red.data.root_lin_vel_w.norm(dim=-1),
+            "was_lifted": self.was_lifted,
             "cmd": self.cmd,
         }
         s["target"][:, 2] = 0.0
@@ -296,6 +298,8 @@ class PandaTaskEnv(DirectRLEnv):
         """10 Hz bookkeeping: success hold, stages, knocked, metrics, reward."""
         s = self.state()
         self.ticks += 1
+        self.was_lifted |= s["red"][:, 2] > tasks.LIFTED
+        s["was_lifted"] = self.was_lifted
         self.ok = tasks.success(self.task, s)
         self.hold = torch.where(self.ok, self.hold + 1, torch.zeros_like(self.hold))
         self.done_ok = self.hold >= tasks.SUCCESS_HOLD
@@ -394,6 +398,7 @@ class PandaTaskEnv(DirectRLEnv):
         self.ok[env_ids] = False
         self.done_ok[env_ids] = False
         self.succ_latch[env_ids] = False
+        self.was_lifted[env_ids] = False
         self.ticks[env_ids] = 0
         self.start_red[env_ids] = torch.cat([lay[:, 0:2], torch.full((k, 1), CUBE_HALF, device=self.device)], -1)
         self.tcp_hist[env_ids] = 0.0
