@@ -28,49 +28,21 @@ from pathlib import Path  # noqa: E402
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
-from sim.envs import tasks  # noqa: E402
-from sim.envs.panda_env import HOME_TCP, MAX_DXYZ, MAX_DYAW, PandaTaskEnv, PandaTaskEnvCfg  # noqa: E402
-from sim.envs.tasks import CUBE_HALF  # noqa: E402
+from sim.clips import PRE_TICKS, infer_object, layout_for, load, preroll_plan, validate  # noqa: E402
+from sim.envs.panda_env import MAX_DXYZ, MAX_DYAW, PandaTaskEnv, PandaTaskEnvCfg  # noqa: E402
 from vla.prompts import ATOMIC_PROMPTS  # noqa: E402
 
-HOVER, GRASP_Z = 0.14, 0.026
-PRE_TICKS = 40
-
-
-def preroll_plan(c):
-    """(PRE_TICKS, 4) targets: x, y, z, opening for the scripted setup of one clip."""
-    p0 = c["ee_pos"][0]
-    holding = c["obj_pos"][0, 2] > CUBE_HALF + 0.01
-    home = np.array(HOME_TCP)
-    plan = []
-    if holding:                                  # pick the cube up from under the start pose
-        plan += [(p0[0], p0[1], HOVER, 1.0)] * 12 + [(p0[0], p0[1], GRASP_Z, 1.0)] * 8
-        plan += [(p0[0], p0[1], GRASP_Z, 0.0)] * 8 + [(*p0, 0.0)] * 12
-    elif np.linalg.norm(p0 - home) > 0.02:       # lower the open gripper to the start pose
-        plan += [(p0[0], p0[1], HOVER, 1.0)] * 14 + [(*p0, 1.0)] * 26
-    else:
-        plan += [(*home, 1.0)] * PRE_TICKS
-    return np.array(plan[:PRE_TICKS], np.float32)
-
-
-def layout_for(c, rng):
-    """Red where the clip starts it (under the gripper if held); blue and target out of the way."""
-    obj0 = c["obj_pos"][0]
-    red = c["ee_pos"][0][:2] if obj0[2] > CUBE_HALF + 0.01 else obj0[:2]
-    path = np.concatenate([c["ee_pos"][:, :2], c["obj_pos"][:, :2]])
-    lo, hi = np.array(tasks.REGION[0]), np.array(tasks.REGION[1])
-    for _ in range(1000):
-        blue = rng.uniform(lo, hi)
-        tgt = c["obj_pos"][-1, :2] if str(c["skill"]) == "push" else rng.uniform(lo, hi)
-        far = np.linalg.norm(path - blue, axis=1).min() > 0.10 and np.linalg.norm(blue - tgt) > 0.12
-        if far and (str(c["skill"]) == "push" or np.linalg.norm(path - tgt, axis=1).min() > 0.10):
-            return np.concatenate([red, blue, tgt]).astype(np.float32)
-    raise RuntimeError("no layout")
-
-
 def main():
-    files = sorted(Path(args.clips).glob("*.npz"))
-    clips = [dict(np.load(f, allow_pickle=True)) for f in files]
+    files, clips = [], []
+    for f in sorted(Path(args.clips).glob("*.npz")):
+        c = load(f)
+        errs, _ = validate(c)
+        if errs:
+            print(f"skipping {f.name}: {'; '.join(errs)}", flush=True)
+            continue
+        c["obj_pos"] = infer_object(c)       # fills untracked samples
+        files.append(f)
+        clips.append(c)
     n = len(clips)
     rng = np.random.default_rng(args.seed)
     cfg = PandaTaskEnvCfg(task="c1", cameras=True, image_size=args.image_size, terminate_on_success=False)

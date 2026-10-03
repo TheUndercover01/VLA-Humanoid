@@ -27,7 +27,7 @@ from sim.envs.tasks import CUBE_HALF
 TABLE_ORIGIN = (0.5, 0.0, 0.0)          # table frame origin in the env frame (robot base at 0)
 TCP_OFFSET = 0.1034                      # panda_hand -> fingertip centre, along hand z
 HOME_Q = [0.0, -0.2, 0.0, -2.4, 0.0, 2.2, 0.785]   # tuned in sim/probe_reach.py
-HOME_TCP = (0.0, 0.0, 0.25)              # TCP at HOME_Q, table frame (measured in sim/probe_reach.py)
+HOME_TCP = tasks.HOME_TCP                # TCP at HOME_Q, table frame (measured in sim/probe_reach.py)
 ARM_DAMPING = 30.0
 MAX_DXYZ = 0.04
 MAX_DYAW = 0.35
