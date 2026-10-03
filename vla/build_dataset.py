@@ -20,14 +20,14 @@ RAW_ACTION_NAMES = ["dx", "dy", "dz", "dyaw", "grip"]
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--src", required=True)
+    ap.add_argument("--src", required=True, nargs="+", help="one or more folders of npz episodes")
     ap.add_argument("--repo_id", required=True)
     ap.add_argument("--root", required=True)
     ap.add_argument("--fps", type=int, default=10)
     ap.add_argument("--max_episodes", type=int, default=None)
     args = ap.parse_args()
 
-    files = sorted(Path(args.src).glob("*.npz"))[:args.max_episodes]
+    files = [f for src in args.src for f in sorted(Path(src).glob("*.npz"))[:args.max_episodes]]   # cap per folder
     first = np.load(files[0])
     a_dim = first["action"].shape[1]
     action_names = RAW_ACTION_NAMES if a_dim == 5 else [f"a{i}" for i in range(a_dim)]
