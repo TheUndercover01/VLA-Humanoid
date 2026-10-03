@@ -15,6 +15,8 @@ parser.add_argument("--seed", type=int, default=1)
 parser.add_argument("--num_envs", type=int, default=4096)
 parser.add_argument("--max_iterations", type=int, default=1500)
 parser.add_argument("--run_name", default=None)
+parser.add_argument("--action", default="raw", choices=["raw", "vocab"])
+parser.add_argument("--vocab", default="data/processed/vocab_standin.pt")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 app = AppLauncher(args).app
@@ -29,25 +31,32 @@ from rsl_rl.runners import OnPolicyRunner  # noqa: E402
 from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper, handle_deprecated_rsl_rl_cfg  # noqa: E402
 
 from sim.envs.panda_env import PandaTaskEnv, PandaTaskEnvCfg  # noqa: E402
-from sim.rl_cfg import RawPPOCfg  # noqa: E402
+from sim.envs.vocab_env import PandaVocabEnv, PandaVocabEnvCfg  # noqa: E402
+from sim.rl_cfg import RawPPOCfg, VocabPPOCfg  # noqa: E402
 
 
 def main():
     torch.manual_seed(args.seed)
-    env_cfg = PandaTaskEnvCfg(task=args.task, terminate_on_success=False)
+    if args.action == "vocab":
+        env_cfg = PandaVocabEnvCfg(task=args.task, terminate_on_success=False, vocab_path=args.vocab)
+    else:
+        env_cfg = PandaTaskEnvCfg(task=args.task, terminate_on_success=False)
     env_cfg.scene.num_envs = args.num_envs
     env_cfg.sim.device = args.device
     env_cfg.seed = args.seed
-    env = RslRlVecEnvWrapper(PandaTaskEnv(env_cfg))
+    base = PandaVocabEnv(env_cfg) if args.action == "vocab" else PandaTaskEnv(env_cfg)
+    env = RslRlVecEnvWrapper(base)
 
-    agent_cfg = RawPPOCfg(max_iterations=args.max_iterations, seed=args.seed, device=env.unwrapped.device)
+    ppo_cfg = VocabPPOCfg if args.action == "vocab" else RawPPOCfg
+    agent_cfg = ppo_cfg(max_iterations=args.max_iterations, seed=args.seed, device=env.unwrapped.device)
     agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, metadata.version("rsl-rl-lib"))
-    log_dir = Path("runs/rl") / (args.run_name or f"{args.task}_raw_s{args.seed}")
+    log_dir = Path("runs/rl") / (args.run_name or f"{args.task}_{args.action}_s{args.seed}")
     log_dir.mkdir(parents=True, exist_ok=True)
     sim_s_per_iter = agent_cfg.num_steps_per_env * args.num_envs * env.unwrapped.step_dt
     (log_dir / "meta.json").write_text(json.dumps(
-        {"task": args.task, "seed": args.seed, "num_envs": args.num_envs, "action": "raw",
-         "num_steps_per_env": agent_cfg.num_steps_per_env, "sim_seconds_per_iteration": sim_s_per_iter}, indent=1))
+        {"task": args.task, "seed": args.seed, "num_envs": args.num_envs, "action": args.action,
+         "num_steps_per_env": agent_cfg.num_steps_per_env, "sim_seconds_per_iteration": sim_s_per_iter,
+         "vocab": args.vocab if args.action == "vocab" else None}, indent=1))
 
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=str(log_dir), device=agent_cfg.device)
     runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)

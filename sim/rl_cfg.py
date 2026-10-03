@@ -44,6 +44,17 @@ class RawPPOCfg(RslRlOnPolicyRunnerCfg):
     )
 
 
+@configclass
+class VocabPPOCfg(RawPPOCfg):
+    """Same network and PPO settings; one step is a ~2 s primitive, so the discount is 0.99 per
+    0.1 s compounded over 20 ticks (same horizon in simulated seconds as the raw action)."""
+    num_steps_per_env = 16
+    experiment_name = "vocab"
+
+    def __post_init__(self):
+        self.algorithm.gamma = 0.99 ** 20
+
+
 class RslPolicy:
     """Eval-harness policy that runs a trained rsl_rl checkpoint on PandaTaskEnv."""
 

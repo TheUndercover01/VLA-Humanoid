@@ -32,6 +32,7 @@ ARM_DAMPING = 30.0
 MAX_DXYZ = 0.04
 MAX_DYAW = 0.35
 ROT_WEIGHT = 1.0                         # IK weight of orientation error (position weight is 2)
+CTRL_SUBSTEPS = 10                       # physics steps per 10 Hz control tick (sim dt 0.01 s)
 MAX_LEAD = 0.06                          # command never runs further than this ahead of the TCP
 WS_LOW = (-0.25, -0.32, 0.015)
 WS_HIGH = (0.32, 0.32, 0.40)
@@ -154,6 +155,11 @@ class PandaTaskEnv(DirectRLEnv):
         self.knocked = torch.zeros(n, dtype=torch.bool, device=dev)
         self.ok = torch.zeros(n, dtype=torch.bool, device=dev)
         self.done_ok = torch.zeros(n, dtype=torch.bool, device=dev)
+        self.succ_latch = torch.zeros(n, dtype=torch.bool, device=dev)   # success held at some tick of this step
+        self.rew_acc = torch.zeros(n, device=dev)
+        self.ticks = torch.zeros(n, dtype=torch.long, device=dev)        # control ticks in this episode
+        self._sub = 0
+        self.tick_callback = None                 # f(env), called every control tick (videos)
         self.start_red = torch.zeros(n, 3, device=dev)
         self.layout = torch.zeros(n, 6, device=dev)
         self.tcp_hist = torch.zeros(n, 4, 3, device=dev)  # last 4 TCP positions, for jerk
@@ -229,20 +235,38 @@ class PandaTaskEnv(DirectRLEnv):
         return s
 
     # ---------- action ----------
-    def _pre_physics_step(self, actions):
-        self.extras["log"] = {}
-        a = actions.clamp(-1.0, 1.0)
-        pos = (self.cmd + a[:, :3] * MAX_DXYZ).clamp(self.ws_low, self.ws_high)
+    def _command(self, pos, yaw, opening):
+        """Set the TCP command (table frame), its yaw and the finger opening in [0, 1]."""
+        pos = pos.clamp(self.ws_low, self.ws_high)
         # keep the command inside the measured vertical-gripper reach (sim/probe_reach.py)
         rel = pos[:, :2] - self.base_xy
         r = rel.norm(dim=-1, keepdim=True).clamp(min=1e-6)
         pos[:, :2] = self.base_xy + rel * r.clamp(*REACH) / r
         tcp = self.to_table(self.tcp_w())
         self.cmd = tcp + (pos - tcp).clamp(-MAX_LEAD, MAX_LEAD)
-        self.cmd_yaw = self.cmd_yaw + a[:, 3] * MAX_DYAW
-        self.grip_target = 0.04 * (a[:, 4] + 1) / 2
+        self.cmd_yaw = yaw
+        self.grip_target = 0.04 * opening
+
+    def _pre_physics_step(self, actions):
+        self.extras["log"] = {}
+        self._sub = 0
+        self.succ_latch[:] = False
+        self.rew_acc[:] = 0.0
+        a = actions.clamp(-1.0, 1.0)
+        self._command(self.cmd + a[:, :3] * MAX_DXYZ, self.cmd_yaw + a[:, 3] * MAX_DYAW, (a[:, 4] + 1) / 2)
+
+    def _block_start(self, block):
+        """Called at the start of every control tick within an env step (the vocabulary env sets waypoints here)."""
 
     def _apply_action(self):
+        if self._sub % CTRL_SUBSTEPS == 0:
+            if self._sub > 0:
+                self._tick()
+            self._block_start(self._sub // CTRL_SUBSTEPS)
+        self._sub += 1
+        self._ik_step()
+
+    def _ik_step(self):
         """One damped-least-squares IK step toward the commanded pose."""
         jac = self.robot.root_physx_view.get_jacobians()[:, self.jac_idx, :, :7].clone()
         r = self.hand_rot()
@@ -268,30 +292,39 @@ class PandaTaskEnv(DirectRLEnv):
         self.robot.set_joint_position_target(self.grip_target[:, None].repeat(1, 2), joint_ids=self.finger_ids)
 
     # ---------- task logic (tasks.py) ----------
-    def _get_dones(self):
+    def _tick(self):
+        """10 Hz bookkeeping: success hold, stages, knocked, metrics, reward."""
         s = self.state()
+        self.ticks += 1
         self.ok = tasks.success(self.task, s)
         self.hold = torch.where(self.ok, self.hold + 1, torch.zeros_like(self.hold))
         self.done_ok = self.hold >= tasks.SUCCESS_HOLD
+        self.succ_latch |= self.done_ok
         tasks.update_stages(self.task, s, self.reached, self.start_red, self.ok)
         red = s["red"]
         for cube in ([red, s["blue"]] if self.task in ("c2", "c3") else [red]):
             self.knocked |= (cube[:, 2] < -0.05) | (cube[:, :2].abs() > 0.5).any(-1)
         # metrics
         self.tcp_hist = torch.cat([self.tcp_hist[:, 1:], s["tcp"][:, None]], dim=1)
-        step = self.episode_length_buf
+        step = self.ticks
         d3 = self.tcp_hist[:, 3] - 3 * self.tcp_hist[:, 2] + 3 * self.tcp_hist[:, 1] - self.tcp_hist[:, 0]
         valid = (step >= 4).float()
         self.jerk_sum += valid * d3.abs().sum(-1)
         self.jerk_cnt += valid * 3
         f = self.contact.data.net_forces_w_history.norm(dim=-1).amax(dim=1)   # (n, 2 cubes)
         self.peak_force = torch.maximum(self.peak_force, f.amax(-1))
-        terminated = (self.done_ok & self.cfg.terminate_on_success) | self.knocked
+        self.rew_acc += tasks.reward(self.task, s, self.done_ok)
+        if self.tick_callback is not None:
+            self.tick_callback(self)
+
+    def _get_dones(self):
+        self._tick()                             # the last tick of this env step
+        terminated = (self.succ_latch & self.cfg.terminate_on_success) | self.knocked
         truncated = self.episode_length_buf >= self.max_episode_length - 1
         return terminated, truncated
 
     def _get_rewards(self):
-        return tasks.reward(self.task, self.state(), self.done_ok)
+        return self.rew_acc.clone()
 
     def _get_observations(self):
         s = self.state()
@@ -301,9 +334,12 @@ class PandaTaskEnv(DirectRLEnv):
                          s["red"], s["blue"], s["target"], s["red"] - s["tcp"], goal - s["red"]], dim=-1)
         out = {"policy": obs}
         if self.cfg.cameras:
-            out["front"] = self.scene.sensors["front_cam"].data.output["rgb"]
-            out["wrist"] = self.scene.sensors["wrist_cam"].data.output["rgb"]
+            out.update(self.images())
         return out
+
+    def images(self):
+        return {"front": self.scene.sensors["front_cam"].data.output["rgb"],
+                "wrist": self.scene.sensors["wrist_cam"].data.output["rgb"]}
 
     # ---------- reset ----------
     def set_layouts(self, layouts):
@@ -315,9 +351,9 @@ class PandaTaskEnv(DirectRLEnv):
             env_ids = self.robot._ALL_INDICES
         ran = self.episode_length_buf[env_ids] > 0
         done_ids = env_ids[ran]
-        dt = self.cfg.sim.dt * self.cfg.decimation
-        self.last_episode["success"][done_ids] = self.done_ok[done_ids].float()
-        self.last_episode["time"][done_ids] = self.episode_length_buf[done_ids].float() * dt
+        dt = self.cfg.sim.dt * CTRL_SUBSTEPS        # control tick
+        self.last_episode["success"][done_ids] = (self.done_ok | self.succ_latch)[done_ids].float()
+        self.last_episode["time"][done_ids] = self.ticks[done_ids].float() * dt
         self.last_episode["jerk"][done_ids] = self.jerk_sum[done_ids] / self.jerk_cnt[done_ids].clamp(min=1) / dt**3
         self.last_episode["peak_force"][done_ids] = self.peak_force[done_ids]
         self.last_reached[done_ids] = self.reached[done_ids]
@@ -357,6 +393,8 @@ class PandaTaskEnv(DirectRLEnv):
         self.knocked[env_ids] = False
         self.ok[env_ids] = False
         self.done_ok[env_ids] = False
+        self.succ_latch[env_ids] = False
+        self.ticks[env_ids] = 0
         self.start_red[env_ids] = torch.cat([lay[:, 0:2], torch.full((k, 1), CUBE_HALF, device=self.device)], -1)
         self.tcp_hist[env_ids] = 0.0
         self.jerk_sum[env_ids] = 0.0
