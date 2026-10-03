@@ -112,4 +112,11 @@ Scripted expert on the eval states: push 100, lift 100, c1 100, c2 100, **c3 89*
 
 - Cheating check (user request). Old raw C1 (iteration 1700) re-scored with the eval code from before the change: **100/100 under the old rule, 47/100 with the lift rule**, so 53 of its successes were pushes (vocabulary: 62 of 81). Raw C2 at iteration 800: **76/100, red lifted in all 100 episodes**, red sits on blue in the videos, so no shortcut; but it stacks hard (peak contact force ~60–75 N and jerk ~12–14 vs ~17 N and ~6.5 for the scripted expert). Eval CSVs now carry a `lifted` column (red cube ≥ 5 cm up at some point). Video `media/12_raw_rl_c2_it800.mp4`.
 
+### Sat 3 – Sun 4 Oct (overnight run, `scripts/overnight.sh`)
+Detached pipeline: as each RL expert finishes → eval on the 100 states with video → if ≥ 40%, record 500 successful camera rollouts (B2 from raw experts, Ours from vocabulary experts) → LeRobot datasets → SmolVLA fine-tunes with the same 10k-step budget (B2, Ours, Oracle on c1+c2, matched to the tasks the experts cover tonight) → eval of the distilled VLAs on c1, c2. Log: `/media/storage/ayush/cache/overnight_status.txt`.
+- **Raw C2 final: 99/100** on the eval states (red lifted in all 99 successes; mean time 4.5 s vs 5.1 s for the scripted expert; rough: jerk 14.7, peak force 53 N).
+- Oracle c1+c2 dataset: 1000 episodes, 52,475 frames; fine-tune running.
+- New raw C1 (lift required) is slower to learn: success held to the end of training episodes 0.5% → 22% between iterations 800 and 1200 while placing reached 95%. Trace at iteration 1200: the cube reaches the target, but the policy keeps re-grasping or nudging it (fingers closed again in ~10 of 64 envs, cube sliding at 0.1–0.3 m/s in ~20), so success rarely holds 0.5 s. Still improving, left running.
+- Bug: the rollout recorder crashed saving RL actions that still carried autograd state (`RslPolicy.act` now returns detached actions); B2 c2 rollouts re-recorded.
+
 Next: evaluate the RL runs when they finish; then stand-in atomic clips (cut from the scripted expert, one skill per clip) for the B1 pipeline and the synthetic vocabulary.
