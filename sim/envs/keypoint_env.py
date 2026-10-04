@@ -8,8 +8,9 @@ the cube's yaw at the start of the command: the clips carry, lift and push the c
 
 Reward (motion/keypoint_ref.py makes the waypoints from the clips; same code for every skill):
   The cube's 8 corners are compared with the clips' waypoints: corner offsets from the goal pose, laid
-  over this command's goal and travel direction and warped so that the first waypoint is where the
-  cube starts (the last is unchanged). Distance = mean over the cube's corners of the distance to the
+  over this command's goal and travel direction, stretched per axis so its start distance matches this
+  cube's (a short carry keeps the clips' shape at a smaller size), and any remaining start offset faded
+  out towards the goal (the last waypoint is unchanged). Distance = mean over the cube's corners of the distance to the
   nearest waypoint corner, so a cube turned a quarter (or flipped) is the same cube, while one turned
   45 degrees is ~2 cm off. A waypoint counts as reached when that distance is
   below its tolerance, 2 x the clips' spread there (at least 1 cm); reaching a later one counts the
@@ -43,6 +44,7 @@ HOLD = 3                     # ticks the done check must hold
 WP_TOL_MIN = 0.01            # m, mean corner distance
 DONE_TOL = 0.02              # m, mean corner distance from the goal pose: "the cube is there" (40% of its width)
 REST = 0.03                  # m/s
+STRETCH_MIN = 0.02           # m: the template is stretched along an axis only if the clips start this far from the goal on it
 TIME_COST, DONE_BONUS, HOLD_BONUS = 0.02, 5.0, 0.1
 P_BANK, P_STACKED = 0.6, 0.1
 LOCAL = CUBE_HALF * torch.tensor([[x, y, z] for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)], dtype=torch.float32)
@@ -161,9 +163,17 @@ class PandaKeypointEnv(PandaTaskEnv):
                             torch.zeros_like(ap[:, 0]))
         goal_yaw = yaw_of_quat(aq)
         gc = goal[:, None] + rot_z(self.local[None].expand(len(ap), 8, 3), goal_yaw)
-        path = gc[:, None] + rot_z(self.wp[skill], frame)                                   # (n, P, 8, 3)
-        warp = ac - path[:, 0]
-        path = path + (1 - self.phase)[None, :, None, None] * warp[:, None]
+        # fit the template to this start: in the travel frame, stretch each axis by (this start's distance from
+        # the goal) / (the clips' start distance), so a short carry keeps the clips' shape at a smaller size;
+        # what is left over (sideways offsets, the cube's turn) is added with a weight fading to 0 at the goal
+        tmpl = self.wp[skill]                                                               # (n, P, 8, 3)
+        start = rot_z(ac - gc, -frame)                                                      # (n, 8, 3)
+        t0, s0 = tmpl[:, 0].mean(1), start.mean(1)                                          # (n, 3) centres
+        scale = torch.where(t0.abs() > STRETCH_MIN, (s0 / t0.where(t0.abs() > STRETCH_MIN, torch.ones_like(t0))).clamp(0, 3),
+                            torch.ones_like(t0))
+        tmpl = tmpl * scale[:, None, None]
+        tmpl = tmpl + (1 - self.phase)[None, :, None, None] * (start - tmpl[:, 0])[:, None]
+        path = gc[:, None] + rot_z(tmpl, frame)                                             # (n, P, 8, 3)
         self.goal_corners[ids], self.path[ids] = gc[ids], path[ids]
         self.wp_reached[ids] = 0
         self.chold[ids] = 0
