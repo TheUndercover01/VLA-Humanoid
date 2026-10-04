@@ -3,7 +3,9 @@
 Run in the lerobot env:
     python -m vla.build_dataset --src data/processed/replays/standin --repo_id local/b1_standin \
         --root /media/storage/ayush/vla_data/lerobot/b1_standin
-Each npz is one episode: front, wrist (T, H, W, 3) uint8, state (T, 6), action (T, A), prompt.
+Each npz is one episode: front, wrist (T, H, W, 3) uint8, state (T, 6), action (T, A), and either prompt
+(one instruction for the episode) or prompts (T,): one per frame, as recorded by sim/record_keypoint_rollouts.py
+(the instruction of the command active at that frame).
 A = 5 for the raw action (10 fps); vocabulary rollouts (one frame per ~2 s primitive) store
 [skill one-hot | z] and use --fps 1 (LeRobot needs an integer rate; only the frame order matters).
 """
@@ -45,11 +47,11 @@ def main():
                                use_videos=True)
     for f in files:
         ep = np.load(f, allow_pickle=True)
-        prompt = str(ep["prompt"])
+        prompts = [str(p) for p in ep["prompts"]] if "prompts" in ep.files else [str(ep["prompt"])] * len(ep["action"])
         for t in range(len(ep["action"])):
             ds.add_frame({"observation.images.front": ep["front"][t], "observation.images.wrist": ep["wrist"][t],
                           "observation.state": ep["state"][t].astype(np.float32),
-                          "action": ep["action"][t].astype(np.float32), "task": prompt})
+                          "action": ep["action"][t].astype(np.float32), "task": prompts[t]})
         ds.save_episode()
     ds.finalize()
     print(f"wrote {len(files)} episodes, {ds.num_frames} frames to {args.root}")

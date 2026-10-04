@@ -85,3 +85,36 @@ class VLAPolicy:
         if advanced.any():
             self.stage = self.stage + advanced.long()
             self.k = self.replan            # new instruction: replan for every env on the next step
+
+
+class CommandVLAPolicy:
+    """SmolVLA on the keypoint env's command chain: each env's prompt is the instruction of its current command
+    (vla/prompts.py: command_prompt); the env switches commands when one is done (the same privileged check
+    the RL teacher is evaluated with), and a switch forces a replan."""
+
+    def __init__(self, port, replan=1):
+        self.conn = Client(("localhost", port), authkey=AUTHKEY)
+        self.replan = replan
+        self.queue, self.k, self.cur = None, 0, None
+
+    def act(self, env):
+        from sim.clips import SKILLS
+        from vla.prompts import command_prompt
+        if self.queue is None or self.k >= self.replan or (self.cur is not None and (env.cur != self.cur).any()):
+            img = env.images()
+            s = env.state()
+            yaw = env.tcp_yaw()
+            state = torch.cat([s["tcp"], torch.sin(yaw)[:, None], torch.cos(yaw)[:, None], s["grip"][:, None] / 0.08], -1)
+            skill, cube, dest = (x.tolist() for x in env.command())
+            prompts = [command_prompt(SKILLS[k], c, d) for k, c, d in zip(skill, cube, dest)]
+            front = img["front"][..., :3].to(torch.uint8).cpu().numpy()
+            wrist = img["wrist"][..., :3].to(torch.uint8).cpu().numpy()
+            self.conn.send({"front": front.tobytes(), "wrist": wrist.tobytes(), "hw": front.shape[1:3],
+                            "state": state.float().cpu().numpy().tobytes(), "task": prompts})
+            r = self.conn.recv()
+            self.queue = torch.from_numpy(np.frombuffer(r["actions"], np.float32).reshape(r["shape"]).copy()).to(env.device)
+            self.k = 0
+            self.cur = env.cur.clone()
+        a = self.queue[:, self.k].clamp(-1, 1)
+        self.k += 1
+        return a, None

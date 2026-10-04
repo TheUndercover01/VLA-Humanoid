@@ -32,7 +32,9 @@ from isaaclab.app import AppLauncher
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--chain", required=True)
-parser.add_argument("--policy", required=True, help="rsl:<checkpoint.pt>")
+parser.add_argument("--policy", required=True, help="rsl:<checkpoint.pt>, or vla (a vla/server.py on --vla_port; --keypoints)")
+parser.add_argument("--vla_port", type=int, default=6061)
+parser.add_argument("--replan", type=int, default=1, help="vla: steps executed from each chunk before asking again")
 parser.add_argument("--val", action="store_true", help="validation layouts (seed 4321) instead of the eval states")
 parser.add_argument("--name", default=None)
 parser.add_argument("--out", default=None)
@@ -50,7 +52,7 @@ parser.add_argument("--num_envs", type=int, default=None, help="only the first N
                     "also stores camera frames, so 100 envs with cameras do not fit next to a training run)")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
-if args.video:
+if args.video or args.policy == "vla":
     args.enable_cameras = True
 app = AppLauncher(args).app
 
@@ -107,7 +109,8 @@ def main():
     n = len(layouts)
     Cfg, Env = (PandaKeypointEnvCfg, PandaKeypointEnv) if args.keypoints else (PandaSkillEnvCfg, PandaSkillEnv)
     cfg = Cfg(task=layout_task, final_check=check, episode_s=SECONDS_PER_COMMAND * len(chain) + 5,
-              cameras=args.video is not None, image_size=384)
+              cameras=args.video is not None or args.policy == "vla",
+              image_size=256 if args.policy == "vla" else 384)       # the VLA sees the image size it was trained on
     cfg.ref_path = args.ref or cfg.ref_path
     if args.keypoints:
         cfg.hold_fix, cfg.release, cfg.time_cost = args.hold_fix, args.release, args.time_cost
@@ -118,9 +121,13 @@ def main():
     env = Env(cfg)
     env.set_chain(chain)
     env.set_layouts(layouts)
-    policy = RslPolicy(args.policy[4:], env)
+    if args.policy == "vla":
+        from sim.vla_policy import CommandVLAPolicy
+        policy = CommandVLAPolicy(args.vla_port, replan=args.replan)
+    else:
+        policy = RslPolicy(args.policy[4:], env)
     env.reset()
-    name = args.name or Path(args.policy[4:]).parent.name
+    name = args.name or (Path(args.policy[4:]).parent.name if args.policy != "vla" else "vla")
 
     rec = None
     if args.video:
