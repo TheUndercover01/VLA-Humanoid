@@ -8,6 +8,10 @@ Each npz is one episode: front, wrist (T, H, W, 3) uint8, state (T, 6), action (
 (the instruction of the command active at that frame).
 A = 5 for the raw action (10 fps); vocabulary rollouts (one frame per ~2 s primitive) store
 [skill one-hot | z] and use --fps 1 (LeRobot needs an integer rate; only the frame order matters).
+--prompt_mode sequence (a VLA that gets the whole task, no planner): every frame of an episode gets the episode's
+whole instruction sequence ("pick up the red cube, then put the red cube on the blue cube"), and each command is
+also added as its own episode with its own instruction, so the training prompts are 1 or 2 steps long and the
+VLA has to tell from the images which part of the sequence it is at.
 """
 import argparse
 import shutil
@@ -27,6 +31,7 @@ def main():
     ap.add_argument("--root", required=True)
     ap.add_argument("--fps", type=int, default=10)
     ap.add_argument("--max_episodes", type=int, default=None)
+    ap.add_argument("--prompt_mode", default="step", choices=["step", "sequence"])
     args = ap.parse_args()
 
     files = [f for src in args.src for f in sorted(Path(src).glob("*.npz"))[:args.max_episodes]]   # cap per folder
@@ -45,14 +50,27 @@ def main():
         shutil.rmtree(args.root)
     ds = LeRobotDataset.create(args.repo_id, args.fps, features, root=args.root, robot_type="franka_panda_sim",
                                use_videos=True)
-    for f in files:
-        ep = np.load(f, allow_pickle=True)
-        prompts = [str(p) for p in ep["prompts"]] if "prompts" in ep.files else [str(ep["prompt"])] * len(ep["action"])
-        for t in range(len(ep["action"])):
+    def add(ep, frames, prompt_of):
+        for t in frames:
             ds.add_frame({"observation.images.front": ep["front"][t], "observation.images.wrist": ep["wrist"][t],
                           "observation.state": ep["state"][t].astype(np.float32),
-                          "action": ep["action"][t].astype(np.float32), "task": prompts[t]})
+                          "action": ep["action"][t].astype(np.float32), "task": prompt_of(t)})
         ds.save_episode()
+
+    for f in files:
+        ep = np.load(f, allow_pickle=True)
+        T = len(ep["action"])
+        prompts = [str(p) for p in ep["prompts"]] if "prompts" in ep.files else [str(ep["prompt"])] * T
+        if args.prompt_mode == "step":
+            add(ep, range(T), lambda t: prompts[t])
+            continue
+        whole = ", then ".join(dict.fromkeys(prompts))         # the episode's commands in order
+        add(ep, range(T), lambda t: whole)
+        if whole != prompts[0]:                                 # and each command on its own
+            cuts = [0] + [t for t in range(1, T) if prompts[t] != prompts[t - 1]] + [T]
+            for a, b in zip(cuts[:-1], cuts[1:]):
+                if b - a > 2:
+                    add(ep, range(a, b), lambda t: prompts[t])
     ds.finalize()
     print(f"wrote {len(files)} episodes, {ds.num_frames} frames to {args.root}")
 

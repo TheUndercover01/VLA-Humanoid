@@ -92,21 +92,25 @@ class CommandVLAPolicy:
     (vla/prompts.py: command_prompt); the env switches commands when one is done (the same privileged check
     the RL teacher is evaluated with), and a switch forces a replan."""
 
-    def __init__(self, port, replan=1):
+    def __init__(self, port, replan=1, whole=None):
+        """whole: one instruction for the entire episode (the whole task, no planner); the env still switches
+        commands, but only to score progress, and the VLA is never told."""
         self.conn = Client(("localhost", port), authkey=AUTHKEY)
-        self.replan = replan
+        self.replan, self.whole = replan, whole
         self.queue, self.k, self.cur = None, 0, None
 
     def act(self, env):
         from sim.clips import SKILLS
         from vla.prompts import command_prompt
-        if self.queue is None or self.k >= self.replan or (self.cur is not None and (env.cur != self.cur).any()):
+        switched = self.whole is None and self.cur is not None and (env.cur != self.cur).any()
+        if self.queue is None or self.k >= self.replan or switched:
             img = env.images()
             s = env.state()
             yaw = env.tcp_yaw()
             state = torch.cat([s["tcp"], torch.sin(yaw)[:, None], torch.cos(yaw)[:, None], s["grip"][:, None] / 0.08], -1)
             skill, cube, dest = (x.tolist() for x in env.command())
-            prompts = [command_prompt(SKILLS[k], c, d) for k, c, d in zip(skill, cube, dest)]
+            prompts = [self.whole] * env.num_envs if self.whole else \
+                [command_prompt(SKILLS[k], c, d) for k, c, d in zip(skill, cube, dest)]
             front = img["front"][..., :3].to(torch.uint8).cpu().numpy()
             wrist = img["wrist"][..., :3].to(torch.uint8).cpu().numpy()
             self.conn.send({"front": front.tobytes(), "wrist": wrist.tobytes(), "hw": front.shape[1:3],

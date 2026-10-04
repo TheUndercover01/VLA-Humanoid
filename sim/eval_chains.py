@@ -35,6 +35,8 @@ parser.add_argument("--chain", required=True)
 parser.add_argument("--policy", required=True, help="rsl:<checkpoint.pt>, or vla (a vla/server.py on --vla_port; --keypoints)")
 parser.add_argument("--vla_port", type=int, default=6061)
 parser.add_argument("--replan", type=int, default=1, help="vla: steps executed from each chunk before asking again")
+parser.add_argument("--whole_prompt", action="store_true",
+                    help="vla: the whole chain as one instruction for the entire episode (no planner, no switching)")
 parser.add_argument("--val", action="store_true", help="validation layouts (seed 4321) instead of the eval states")
 parser.add_argument("--name", default=None)
 parser.add_argument("--out", default=None)
@@ -123,7 +125,12 @@ def main():
     env.set_layouts(layouts)
     if args.policy == "vla":
         from sim.vla_policy import CommandVLAPolicy
-        policy = CommandVLAPolicy(args.vla_port, replan=args.replan)
+        whole = None
+        if args.whole_prompt:
+            from vla.prompts import command_prompt
+            whole = ", then ".join(command_prompt(k, c, d) for k, c, d in chain)
+            print(f"whole prompt: {whole}", flush=True)
+        policy = CommandVLAPolicy(args.vla_port, replan=args.replan, whole=whole)
     else:
         policy = RslPolicy(args.policy[4:], env)
     env.reset()
