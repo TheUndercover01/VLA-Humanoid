@@ -90,6 +90,7 @@ class PandaSkillEnv(PandaTaskEnv):
         self.cur = torch.zeros(n, dtype=torch.long, device=dev)
         self.completed = torch.zeros(n, dtype=torch.long, device=dev)
         self.completed_final = torch.zeros(n, dtype=torch.long, device=dev)
+        self.last_done = torch.zeros(n, dtype=torch.bool, device=dev)   # the last command has been done (held) at some point
         self.chold = torch.zeros(n, dtype=torch.long, device=dev)
         self.prog = torch.zeros(n, dtype=torch.long, device=dev)
         self.obj0 = torch.zeros(n, 3, device=dev)       # commanded cube at the command's start
@@ -178,7 +179,10 @@ class PandaSkillEnv(PandaTaskEnv):
         self.completed += adv.long()
         self.cur += adv.long()
         self.need_start |= adv
-        self.completed_final = self.completed + self.done_ok.long()
+        # counts a command once it was done, like an advanced command: without the latch the last command only
+        # counted if it was still done when the episode timed out, so one-command (chain1) runs logged 0%
+        self.last_done |= self.done_ok
+        self.completed_final = self.completed + self.last_done.long()
         self.rew_acc += rew
 
         for cube in (s["red"], s["blue"]):
@@ -310,6 +314,7 @@ class PandaSkillEnv(PandaTaskEnv):
         self.n_cmd[env_ids] = torch.tensor([len(ch) for ch in chains], device=self.device)
         self.cur[env_ids] = 0
         self.completed[env_ids] = 0
+        self.last_done[env_ids] = False
         self.need_start[env_ids] = True
 
         dev = self.device
