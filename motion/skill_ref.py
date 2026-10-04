@@ -22,7 +22,9 @@ points and averaged over clips:
   moves  bool          the skill moves the cube sideways (its command needs a destination)
   done_radius          how close to the path's end counts as done: separates the successful
                        clips' end states from failed ones ("_fail" in the file name); with no
-                       failures, the largest end deviation among the successes
+                       failures, the largest end deviation among the successes (floor SIGMA_FLOOR;
+                       a 2 cm floor let reach end 2 cm above the cube's centre, so pick-lift then
+                       closed on the top edge and the cube slipped out)
 
     python -m motion.skill_ref --clips data/processed/clips_standin --out data/processed/skill_ref_standin.npz
 """
@@ -104,7 +106,7 @@ def build(clips, names):
         out[f"{k}_grip_sigma"] = np.maximum(grips.std(0), GRIP_FLOOR).astype(np.float32)
         out[f"{k}_delta"] = (-mean[0, 3:]).astype(np.float32)
         out[f"{k}_moves"] = moves
-        out[f"{k}_done_radius"] = max(fit_threshold(dev(good), dev(bad)), 2 * SIGMA_FLOOR)
+        out[f"{k}_done_radius"] = max(fit_threshold(dev(good), dev(bad)), SIGMA_FLOOR)
         out[f"{k}_n"], out[f"{k}_n_fail"] = len(good), len(bad)
     return out
 
