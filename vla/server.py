@@ -1,4 +1,6 @@
-"""Serve SmolVLA action chunks to the Isaac eval harness (run in the lerobot env).
+"""Serve action chunks of a fine-tuned LeRobot policy to the Isaac eval harness (run in the lerobot env).
+SmolVLA, X-VLA, multi-task DiT and pi0.5 checkpoints load by the "type" in their config.json; the harness's
+front/wrist images go to whatever camera names the policy was trained with.
 
     python -m vla.server --policy /media/storage/ayush/vla_data/train/b1_standin/checkpoints/last/pretrained_model
     python -m vla.server --policy base --stats_from /media/storage/ayush/vla_data/lerobot/b1_standin   # B0
@@ -16,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from lerobot.configs.types import FeatureType, PolicyFeature
-from lerobot.policies.factory import make_pre_post_processors
+from lerobot.policies.factory import get_policy_class, make_pre_post_processors
 from lerobot.policies.smolvla.modeling_smolvla import SmolVLAPolicy
 
 ADDRESS = ("localhost", 6011)
@@ -37,10 +39,33 @@ def load(policy, stats_from, device):
         pol.config.device = device
         pre, post = make_pre_post_processors(pol.config, dataset_stats=stats)
     else:
-        pol = SmolVLAPolicy.from_pretrained(policy)
+        kind = json.loads((Path(policy) / "config.json").read_text())["type"]
+        pol = get_policy_class(kind).from_pretrained(policy)
         pol.config.device = device
         pre, post = make_pre_post_processors(pol.config, pretrained_path=policy)
-    return pol.to(device).eval(), pre, post
+    pol = pol.to(device).eval()
+    pol.reset()
+    return pol, pre, post
+
+
+def camera_names(pol):
+    """front, wrist -> the policy's image feature names (camera1/camera2, image/image2, or front/wrist)."""
+    names = [k for k in pol.config.input_features if k.startswith("observation.images.")]
+    for pair in (["camera1", "camera2"], ["image", "image2"], ["front", "wrist"]):
+        if all(f"observation.images.{c}" in names for c in pair):
+            return pair
+    raise ValueError(f"cannot map front/wrist onto {names}")
+
+
+def predict_chunk(pol, batch):
+    """(B, chunk, action) for a whole batch of envs. The multi-task DiT keeps a one-env observation queue
+    in predict_action_chunk, so its model is called directly (trained with n_obs_steps = 1)."""
+    if pol.config.type == "multi_task_dit":
+        b = pol._prepare_batch(batch)
+        for k in ("observation.state", "observation.images"):
+            b[k] = b[k].unsqueeze(1)
+        return pol._generate_actions(b)
+    return pol.predict_action_chunk(batch)
 
 
 def main():
@@ -53,7 +78,8 @@ def main():
     args = ap.parse_args()
     pol, pre, post = load(args.policy, args.stats_from, args.device)
     with Listener((ADDRESS[0], args.port), authkey=AUTHKEY) as listener:
-        print(f"serving {args.policy} on port {args.port}, chunk {pol.config.chunk_size}", flush=True)
+        cams = camera_names(pol)
+        print(f"serving {args.policy} ({pol.config.type}) on port {args.port}", flush=True)
         while True:
             with listener.accept() as conn:
                 while True:
@@ -63,7 +89,7 @@ def main():
                         break
                     h, w = msg["hw"]
                     imgs = {}
-                    for key, cam in [("front", "camera1"), ("wrist", "camera2")]:
+                    for key, cam in zip(["front", "wrist"], cams):
                         a = np.frombuffer(msg[key], np.uint8).reshape(-1, h, w, 3)
                         imgs[f"observation.images.{cam}"] = torch.from_numpy(a.copy()).permute(0, 3, 1, 2).float() / 255
                     b = len(msg["task"])
@@ -73,7 +99,7 @@ def main():
                     for i in range(0, b, args.max_batch):
                         part = {k: v[i:i + args.max_batch] for k, v in batch.items()}
                         with torch.inference_mode():
-                            chunks.append(post(pol.predict_action_chunk(pre(part))).float().cpu())
+                            chunks.append(post(predict_chunk(pol, pre(part))).float().cpu())
                     chunk = torch.cat(chunks).numpy().astype(np.float32)
                     conn.send({"actions": chunk.tobytes(), "shape": chunk.shape})
 
