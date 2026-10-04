@@ -73,6 +73,7 @@ class PandaTaskEnvCfg(DirectRLEnvCfg):
     cameras: bool = False
     terminate_on_success: bool = True     # eval: end once success has held; RL training: keep going
     image_size: int = 256
+    episode_s: float = 0.0                # episode length; 0 = tasks.EPISODE_S[task]
 
     episode_length_s = 15.0               # overwritten per task from tasks.EPISODE_S
     decimation = 10
@@ -130,7 +131,7 @@ class PandaTaskEnv(DirectRLEnv):
 
     def __init__(self, cfg: PandaTaskEnvCfg, render_mode=None, **kwargs):
         assert cfg.task in tasks.TASKS, cfg.task
-        cfg.episode_length_s = tasks.EPISODE_S[cfg.task]
+        cfg.episode_length_s = cfg.episode_s or tasks.EPISODE_S[cfg.task]
         super().__init__(cfg, render_mode, **kwargs)
         n, dev = self.num_envs, self.device
         self.task = cfg.task
@@ -308,7 +309,13 @@ class PandaTaskEnv(DirectRLEnv):
         red = s["red"]
         for cube in ([red, s["blue"]] if self.task in ("c2", "c3") else [red]):
             self.knocked |= (cube[:, 2] < -0.05) | (cube[:, :2].abs() > 0.5).any(-1)
-        # metrics
+        self._metrics(s)
+        self.rew_acc += tasks.reward(self.task, s, self.done_ok)
+        if self.tick_callback is not None:
+            self.tick_callback(self)
+
+    def _metrics(self, s):
+        """Jerk and peak contact force, every control tick."""
         self.tcp_hist = torch.cat([self.tcp_hist[:, 1:], s["tcp"][:, None]], dim=1)
         step = self.ticks
         d3 = self.tcp_hist[:, 3] - 3 * self.tcp_hist[:, 2] + 3 * self.tcp_hist[:, 1] - self.tcp_hist[:, 0]
@@ -317,9 +324,6 @@ class PandaTaskEnv(DirectRLEnv):
         self.jerk_cnt += valid * 3
         f = self.contact.data.net_forces_w_history.norm(dim=-1).amax(dim=1)   # (n, 2 cubes)
         self.peak_force = torch.maximum(self.peak_force, f.amax(-1))
-        self.rew_acc += tasks.reward(self.task, s, self.done_ok)
-        if self.tick_callback is not None:
-            self.tick_callback(self)
 
     def _get_dones(self):
         self._tick()                             # the last tick of this env step

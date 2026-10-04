@@ -125,3 +125,25 @@ Detached pipeline: as each RL expert finishes → eval on the 100 states with vi
 - **Why vocabulary C2 struggles (H4's precision cap, made concrete):** every stand-in place-down clip puts the cube on the table, so the decoded place-down always lowers 7–17 cm (2-std latent range, mean 13 cm). Stacking from carry height needs ~8.5 cm, at the very edge of what the vocabulary covers, where RL rarely explores. **Filming note for Monday: include place-down clips onto something raised (a box or another cube), not only onto the table, and pushes in several directions; the vocabulary can only compose motions the clips span.**
 
 Next: evaluate the RL runs when they finish; then stand-in atomic clips (cut from the scripted expert, one skill per clip) for the B1 pipeline and the synthetic vocabulary.
+
+### Sun 4 Oct (afternoon): new direction, a reward computed only from the clips (user decision)
+Why: with hand-written task rewards the clips only shaped the motion, and every new task needed a new reward and RL run. The vocabulary RL also failed on precision (C2 1/100). New plan: the clips define the reward; one closed-loop raw-action policy learns all four skills from it; it is trained only on chains of at most 2 skills and tested on longer chains it never saw (C1, C2, C3, unstack, ...).
+
+- `motion/skill_ref.py`: each clip reduced to fingertips, finger closure and cube. Every skill described the same way, no per-skill code: x = [fingertips - cube, cube - where the cube ends] in a frame along the cube's horizontal motion (push, place-down) or the cube -> hand direction (reach, pick-lift). Per skill: the clips' mean path over 20 phase points, its spread per phase (sigma, floor 1 cm), mean closure and its spread (floor 0.1), the mean cube displacement (the lift height), and a done radius fitted from the clips' end states (failed clips, named `*_fail`, tighten it). Stand-ins: reach/pick-lift/place-down done radius 2 cm, push 2.6 cm; sigma 6-11 cm at the start of a skill, 1-1.5 cm at its end.
+- `sim/record_state_bank.py`: replays every clip in sim and saves the arm and cube state per tick; RL episodes start from these (reference state initialisation). Frames where the sim cube is > 3 cm from the clip's (dropped in the replay: 30% of place-down, 17% of push) are not used.
+- `sim/envs/skill_env.py`: command = (skill, cube, destination). Reward "clip" = progress along the clips' path x (1 + closeness), in 0..2, + 2 per completed command + 2 per tick while the last one is done. "sparse" (ablation) keeps only the done terms. Done = the clips' end state within the done radius. Nothing from tasks.py's success checks or the old shaped reward is used; eval scores with tasks.success, which the reward never sees. Constants that are not from the clips: the two noise floors, the 2-sigma progress gate, hold 3 ticks, the open/closed split at 0.5.
+- `sim/check_skill_reward.py`: before any RL, a scripted command follower and cheating variants of it, 32 envs each, training layouts:
+
+| chain | behaviour | cmds done | reward's done | eval success | return (clip) |
+|---|---|---|---|---|---|
+| C1 | scripted | 3.00/3 | 100% | 100% | 1288 |
+| C1 | idle | 0 | 0% | 0% | 0 |
+| C1 | open hand (never closes) | 1 | 0% | 0% | 379 |
+| C1 | no release (hovers with the cube) | 2 | 0% | 0% | 853 |
+| C1 | drop from carry height | 2 | 0% | **88%** | 800 |
+| C2 | scripted / idle / open / no release / drop | 3 / 0 / 1 / 2 / 2 | 100 / 0 / 0 / 0 / 0% | 100 / 0 / 0 / 0 / **75%** | 1270 / 0 / 379 / 865 / 792 |
+
+  Every cheat earns less than doing the task and never gets the step it fakes credited. The reward's done agrees with the eval check on 100% of scripted C1/C2/lift episodes. Finding: **dropping the cube onto the target from 12 cm passes the eval's success check** (C1 88%, C2 75%) but not the clip reward, because the clips place the cube down. Push is weaker: the scripted pusher in the check only gets the cube there in 53% of episodes, and the reward credits 31% (it needs the cube within ~2.4 cm, the eval 3 cm).
+- What the check caught (each fixed before training): (1) warping the path to start at the robot made standing still pay ~1-2 per tick, so the path term is now progress x (1 + closeness); (2) phases where only the fingers move (closing) were indistinguishable, so closure is part of the matched vector; (3) the clips' grip is the commanded closure, not the finger gap (a hand closed on a 5 cm cube has a 4.6 cm gap), so pick-lift never counted as done; (4) the old effect term tracked the hand for pick-lift and push, so an empty hand rising, or a hand parked behind the cube, would have scored.
+- Unit tests: `tests/test_skill_ref.py` (path invariant to where and in which direction a clip was filmed, lift height read off the clips, sigma follows clip spread, failed clips tighten the done radius). 26 tests pass.
+- Running (started 14:50, 3000 iterations, 4096 envs, ~2 h): `skills_clip_chain2_s1` (GPU 1), `skills_sparse_chain2_s1` (GPU 0). Next: the isolated-skill run (`--max_chain 1`), then `sim/eval_chains.py` on held-out chains.
