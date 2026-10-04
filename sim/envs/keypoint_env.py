@@ -14,7 +14,7 @@ Reward (motion/keypoint_ref.py makes the waypoints from the clips; same code for
   45 degrees is ~2 cm off. A waypoint counts as reached when that distance is
   below its tolerance, 2 x the clips' spread there (at least 1 cm); reaching a later one counts the
   earlier ones too.
-  potential = waypoints reached + exp(-(d_next / tol_next)^2) - (other cube's corner travel) / 2 cm
+  potential = waypoints reached + exp(-(d_next / tol_next)^2)
   per tick: change in potential - 0.02 (time), + 5 when a command is done, + 0.1 per tick while the
   last command is done. Done = last waypoint reached, the cube within DONE_TOL + the clips' end turn of
   the goal pose (push turns the cube in the clips, lift and place do not), and at rest, for 0.3 s.
@@ -43,7 +43,7 @@ HOLD = 3                     # ticks the done check must hold
 WP_TOL_MIN = 0.01            # m, mean corner distance
 DONE_TOL = 0.02              # m, mean corner distance from the goal pose: "the cube is there" (40% of its width)
 REST = 0.03                  # m/s
-TIME_COST, DONE_BONUS, HOLD_BONUS, DISTURB_SCALE = 0.02, 5.0, 0.1, 0.02
+TIME_COST, DONE_BONUS, HOLD_BONUS = 0.02, 5.0, 0.1
 P_BANK, P_STACKED = 0.6, 0.1
 LOCAL = CUBE_HALF * torch.tensor([[x, y, z] for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)], dtype=torch.float32)
 
@@ -120,7 +120,6 @@ class PandaKeypointEnv(PandaTaskEnv):
         self.goal_corners = torch.zeros(n, 8, 3, device=dev)
         self.path = torch.zeros(n, nwp, 8, 3, device=dev)                 # this command's waypoints, table frame
         self.lift_start = torch.full((n, 3), torch.nan, device=dev)       # clip-start cube for pick-lift starts
-        self.other0 = torch.zeros(n, 8, 3, device=dev)
         self.pot = torch.zeros(n, device=dev)
         self.need_start = torch.ones(n, dtype=torch.bool, device=dev)
         self.d_next = torch.zeros(n, device=dev)
@@ -165,12 +164,12 @@ class PandaKeypointEnv(PandaTaskEnv):
         path = gc[:, None] + rot_z(self.wp[skill], frame)                                   # (n, P, 8, 3)
         warp = ac - path[:, 0]
         path = path + (1 - self.phase)[None, :, None, None] * warp[:, None]
-        self.goal_corners[ids], self.path[ids], self.other0[ids] = gc[ids], path[ids], oc[ids]
+        self.goal_corners[ids], self.path[ids] = gc[ids], path[ids]
         self.wp_reached[ids] = 0
         self.chold[ids] = 0
         self.lift_start[ids] = torch.nan
         self.need_start[ids] = False
-        self.pot[ids] = self.potential(ac, oc)[ids]
+        self.pot[ids] = self.potential(ac)[ids]
         self.prev_pos[ids] = ap[ids]
 
     @staticmethod
@@ -181,7 +180,7 @@ class PandaKeypointEnv(PandaTaskEnv):
         a = a.expand(b.shape)
         return torch.cdist(a.reshape(-1, 8, 3), b.reshape(-1, 8, 3)).amin(-1).mean(-1).reshape(b.shape[:-2])
 
-    def potential(self, ac, oc):
+    def potential(self, ac):
         """Advance the reached waypoints, return the potential (and store distances for logs/tests)."""
         d = self.corner_dist(ac, self.path)                                                  # (n, P)
         skill = self.command()[0]
@@ -196,8 +195,7 @@ class PandaKeypointEnv(PandaTaskEnv):
         self.d_goal = self.corner_dist(ac, self.goal_corners)
         close = torch.exp(-(self.d_next / tol[rows, nxt]) ** 2)
         close = torch.where(self.wp_reached >= self.n_wp - 1, torch.ones_like(close), close)
-        disturb = (oc - self.other0).norm(dim=-1).mean(-1) / DISTURB_SCALE
-        return self.wp_reached.float() + close - disturb
+        return self.wp_reached.float() + close
 
     # ---------- per tick ----------
     def _tick(self):
@@ -211,7 +209,7 @@ class PandaKeypointEnv(PandaTaskEnv):
         # fingers (contact jitter) while its position does not change by 1 mm
         speed = (ap - self.prev_pos).norm(dim=-1) / (self.cfg.sim.dt * self.cfg.decimation)
         self.prev_pos = ap.clone()
-        pot = self.potential(ac, oc)
+        pot = self.potential(ac)
         rew = pot - self.pot - TIME_COST
         self.pot = pot
 
