@@ -5,12 +5,15 @@
 # cameras and DART noise (sim/record_keypoint_rollouts.py), build the LeRobot dataset (per-frame atomic
 # instructions), fine-tune SmolVLA 20k steps, evaluate the VLA on every keypoint chain (validation layouts).
 #   setsid nohup scripts/distill_when_ready.sh > /dev/null 2>&1 < /dev/null &
+# Distil a given checkpoint now, without waiting (the teacher's env flags must match its training):
+#   TEACHER=<ckpt> FLAGS="--hold_fix" REC_FLAGS="--hold_fix" NAME=ours_kp_hold setsid nohup scripts/distill_when_ready.sh ...
 cd "$(dirname "$0")/.."
-RUN=runs/rl/keypoints_hold_v3_chain2_s1
-FLAGS="--hold_fix --release --time_cost 0.05 --knock_penalty --rest_speed 0.05"
-REC_FLAGS="--hold_fix --release --rest_speed 0.05"
+RUN=${RUN:-runs/rl/keypoints_hold_v3_chain2_s1}
+FLAGS=${FLAGS:-"--hold_fix --release --time_cost 0.05 --knock_penalty --rest_speed 0.05"}
+REC_FLAGS=${REC_FLAGS:-"--hold_fix --release --rest_speed 0.05"}
 BAR_C1=80; BAR_C2=70; BAR_UNSTACK=60; STEP=300
-NAME=ours_kp
+NAME=${NAME:-ours_kp}
+EPISODES=${EPISODES:-1000}
 C=/media/storage/ayush/cache
 D=/media/storage/ayush/vla_data
 STATUS=$C/distill_status.txt
@@ -23,9 +26,10 @@ score() {   # checkpoint chain -> success out of 100 on validation layouts
   grep -aoE "success [0-9]+/100" $C/ready_$2.log | grep -oE "[0-9]+" | head -1
 }
 
-log "watching $RUN (bar: C1 >= $BAR_C1, C2 >= $BAR_C2, unstack >= $BAR_UNSTACK, checked every $STEP iterations)"
+if [ -n "$TEACHER" ]; then log "distilling the given teacher $TEACHER ($FLAGS)"; fi
+[ -z "$TEACHER" ] && log "watching $RUN (bar: C1 >= $BAR_C1, C2 >= $BAR_C2, unstack >= $BAR_UNSTACK, checked every $STEP iterations)"
 last=-$STEP
-while true; do
+while [ -z "$TEACHER" ]; do
   ck=$(latest)
   if [ -n "$ck" ] && [ $(iter $ck) -ge $((last + STEP)) ]; then
     last=$(iter $ck)
@@ -39,10 +43,10 @@ while true; do
   sleep 600
 done
 
-log "teacher $TEACHER passed: recording 1000 episodes"
+log "teacher $TEACHER: recording $EPISODES episodes"
 rm -rf data/processed/rollouts/$NAME
 CUDA_VISIBLE_DEVICES=0 scripts/run_isaac.sh $C/rec_$NAME.log sim/record_keypoint_rollouts.py --headless --device cuda:0 \
-  --policy rsl:$TEACHER $REC_FLAGS --episodes 1000 --num_envs 64 --noise 0.3 --out data/processed/rollouts/$NAME
+  --policy rsl:$TEACHER $REC_FLAGS --episodes $EPISODES --num_envs 96 --noise 0.3 --out data/processed/rollouts/$NAME
 log "recorded: $(grep -aE '^kept' $C/rec_$NAME.log | tail -1)"
 
 HF_HOME=$C/hf HF_LEROBOT_HOME=$D/lerobot PYTHONPATH=$PWD /media/storage/ayush/miniconda3/envs/lerobot/bin/python \
