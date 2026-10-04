@@ -16,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--task", required=True)
 parser.add_argument("--policy", default="scripted", help="scripted | rsl:<checkpoint.pt> | vla")
 parser.add_argument("--vocab", default=None, help="vocabulary for an rsl checkpoint trained with --action vocab")
+parser.add_argument("--target_mode", action="store_true", help="vocabulary action with an end point (--action vocab_target)")
 parser.add_argument("--vla_port", type=int, default=6011)
 parser.add_argument("--plan", action="store_true", help="vla: follow the planner's atomic prompts (B1+LLM)")
 parser.add_argument("--replan", type=int, default=3, help="vla: steps executed from each chunk before asking again")
@@ -70,7 +71,8 @@ def main():
     cameras = args.video is not None or vla
     size = 256 if vla else args.image_size            # the VLA sees the image size it was trained on
     if args.vocab:
-        cfg = PandaVocabEnvCfg(task=args.task, cameras=cameras, image_size=size, vocab_path=args.vocab)
+        cfg = PandaVocabEnvCfg(task=args.task, cameras=cameras, image_size=size, vocab_path=args.vocab,
+                               target_mode=args.target_mode)
     else:
         cfg = PandaTaskEnvCfg(task=args.task, cameras=cameras, image_size=size)
     cfg.scene.num_envs = n
