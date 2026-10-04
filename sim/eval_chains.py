@@ -37,6 +37,7 @@ parser.add_argument("--val", action="store_true", help="validation layouts (seed
 parser.add_argument("--name", default=None)
 parser.add_argument("--out", default=None)
 parser.add_argument("--keypoints", action="store_true", help="keypoint env and chains (object-only reward)")
+parser.add_argument("--hold_fix", action="store_true", help="keypoint env with the hold fix (as the policy was trained)")
 parser.add_argument("--ref", default=None, help="default: the stand-in reference of the env")
 parser.add_argument("--bank", default=None)
 parser.add_argument("--video", default=None)
@@ -104,6 +105,8 @@ def main():
     cfg = Cfg(task=layout_task, final_check=check, episode_s=SECONDS_PER_COMMAND * len(chain) + 5,
               cameras=args.video is not None, image_size=384)
     cfg.ref_path = args.ref or cfg.ref_path
+    if args.keypoints:
+        cfg.hold_fix = args.hold_fix
     cfg.bank_path = args.bank or cfg.bank_path
     cfg.scene.num_envs = n
     cfg.sim.device = args.device

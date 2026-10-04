@@ -22,6 +22,7 @@ parser.add_argument("--task", required=True, choices=["push", "lift", "c1", "c2"
 parser.add_argument("--per_behaviour", type=int, default=32)
 parser.add_argument("--ref", default="data/processed/keypoint_ref_standin.npz")
 parser.add_argument("--debug", action="store_true", help="print env 0 every second")
+parser.add_argument("--hold_fix", action="store_true")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 app = AppLauncher(args).app
@@ -45,7 +46,8 @@ BEHAVIOURS = ["scripted", "idle", "open_hand", "shove", "drop", "disturb", "spin
 def main():
     k = args.per_behaviour
     n = k * len(BEHAVIOURS)
-    cfg = PandaKeypointEnvCfg(task=args.task, terminate_on_success=False, ref_path=args.ref, episode_s=20.0)
+    cfg = PandaKeypointEnvCfg(task=args.task, terminate_on_success=False, ref_path=args.ref, episode_s=20.0,
+                              hold_fix=args.hold_fix)
     cfg.scene.num_envs = n
     cfg.sim.device = args.device
     env = PandaKeypointEnv(cfg)

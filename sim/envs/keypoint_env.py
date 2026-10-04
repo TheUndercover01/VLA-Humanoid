@@ -44,8 +44,10 @@ HOLD = 3                     # ticks the done check must hold
 WP_TOL_MIN = 0.01            # m, mean corner distance
 DONE_TOL = 0.02              # m, mean corner distance from the goal pose: "the cube is there" (40% of its width)
 REST = 0.03                  # m/s
+REST_HOLD = 0.1              # m/s, with the hold fix: reachable for a held cube with exploration noise
 STRETCH_MIN = 0.02           # m: the template is stretched along an axis only if the clips start this far from the goal on it
 TIME_COST, DONE_BONUS, HOLD_BONUS = 0.02, 5.0, 0.1
+HOLD_W = 0.1                 # hold fix: at most this per tick for staying at the goal (below the done bonus + next skill)
 P_BANK, P_STACKED = 0.6, 0.1
 LOCAL = CUBE_HALF * torch.tensor([[x, y, z] for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)], dtype=torch.float32)
 
@@ -56,6 +58,11 @@ class PandaKeypointEnvCfg(PandaTaskEnvCfg):
     bank_path: str = "data/processed/state_bank_standin_v2.npz"
     max_chain: int = 2
     final_check: str = ""                 # eval: success also needs tasks.success(final_check)
+    # hold fix: once every waypoint is reached, + HOLD_W x closeness to the goal per tick, and "at rest" is
+    # REST_HOLD (1 cm per tick) instead of REST. Without it the policy lifted the cube along all waypoints but
+    # never held it still in the air, so pick-lift was never done (PROGRESS.md, 4 Oct); with no speed check at
+    # all, a cube slid through the goal while still held counted as placed
+    hold_fix: bool = False
     observation_space = 76
     episode_s = 15.0
 
@@ -223,7 +230,11 @@ class PandaKeypointEnv(PandaTaskEnv):
         rew = pot - self.pot - TIME_COST
         self.pot = pot
 
-        ok = (self.wp_reached >= self.n_wp - 1) & (self.d_goal < self.done_tol[self.command()[0]]) & (speed < REST)
+        at_end = self.wp_reached >= self.n_wp - 1
+        tol = self.done_tol[self.command()[0]]
+        ok = at_end & (self.d_goal < tol) & (speed < (REST_HOLD if self.cfg.hold_fix else REST))
+        if self.cfg.hold_fix:
+            rew = rew + HOLD_W * at_end.float() * torch.exp(-(self.d_goal / tol) ** 2)
         last = self.cur == self.n_cmd - 1
         if self.cfg.final_check:
             s["was_lifted"] = self.was_lifted
