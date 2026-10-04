@@ -1,7 +1,8 @@
 """Stand-in for the phone clips: atomic skill clips cut from scripted-expert episodes.
 
 Writes data/processed/clips_standin/<skill>_<idx>.npz in the clip interface format
-(t, ee_pos, ee_yaw, grip, obj_pos, skill; table frame, 10 Hz). Each clip shows one skill:
+(t, ee_pos, ee_yaw, grip, obj_pos, obj_quat, skill; table frame, 10 Hz; obj_quat is the cube's
+orientation (w, x, y, z), which the phone clips get from an ArUco marker on the cube). Each clip shows one skill:
   reach      home -> gripper around the cube           (from lift episodes)
   pick-lift  close on the cube and lift it              (from lift episodes)
   place-down carry the held cube, lower it, open        (from c1 episodes)
@@ -58,7 +59,7 @@ def record(task, n, seed):
         s = env.state()
         a, skill = ex.act(env)
         snap = (s["tcp"].cpu().numpy(), env.tcp_yaw().cpu().numpy(), ((1 - a[:, 4]) / 2).cpu().numpy(),
-                s["red"].cpu().numpy(), skill.cpu().numpy())
+                s["red"].cpu().numpy(), skill.cpu().numpy(), env.red.data.root_quat_w.cpu().numpy())
         for i in range(n):
             if not done[i]:
                 logs[i].append([x[i] for x in snap])
@@ -109,6 +110,7 @@ def main():
                      ee_yaw=np.array([s[1] for s in steps], np.float32),
                      grip=np.array([s[2] for s in steps], np.float32),
                      obj_pos=np.stack([s[3] for s in steps]).astype(np.float32),
+                     obj_quat=np.stack([s[5] for s in steps]).astype(np.float32),
                      skill=skill)
             count += 1
             if count == args.per_skill:

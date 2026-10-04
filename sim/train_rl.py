@@ -21,10 +21,12 @@ parser.add_argument("--resume", default=None, help="checkpoint to continue from 
 parser.add_argument("--skill_reward", default="clip", choices=["clip", "sparse"],
                     help="--task skills: reward from the clips, or only the clip-defined done events (ablation)")
 parser.add_argument("--max_chain", type=int, default=2, help="--task skills: commands per training episode")
-parser.add_argument("--ref", default="data/processed/skill_ref_standin.npz")
+parser.add_argument("--ref", default=None, help="skill/keypoint reference (default: the stand-in one for --task)")
 parser.add_argument("--bank", default="data/processed/state_bank_standin.npz")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
+if args.ref is None:
+    args.ref = "data/processed/keypoint_ref_standin.npz" if args.task == "keypoints" else "data/processed/skill_ref_standin.npz"
 app = AppLauncher(args).app
 
 import json  # noqa: E402
@@ -37,6 +39,7 @@ from rsl_rl.runners import OnPolicyRunner  # noqa: E402
 from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper, handle_deprecated_rsl_rl_cfg  # noqa: E402
 
 from sim.envs.panda_env import PandaTaskEnv, PandaTaskEnvCfg  # noqa: E402
+from sim.envs.keypoint_env import PandaKeypointEnv, PandaKeypointEnvCfg  # noqa: E402
 from sim.envs.skill_env import PandaSkillEnv, PandaSkillEnvCfg  # noqa: E402
 from sim.envs.vocab_env import PandaVocabEnv, PandaVocabEnvCfg  # noqa: E402
 from sim.rl_cfg import RawPPOCfg, VocabPPOCfg  # noqa: E402
@@ -44,8 +47,11 @@ from sim.rl_cfg import RawPPOCfg, VocabPPOCfg  # noqa: E402
 
 def main():
     torch.manual_seed(args.seed)
-    skills = args.task == "skills"
-    if skills:
+    skills = args.task in ("skills", "keypoints")
+    if args.task == "keypoints":
+        env_cfg = PandaKeypointEnvCfg(task="c1", terminate_on_success=False, max_chain=args.max_chain,
+                                      ref_path=args.ref, bank_path=args.bank)
+    elif skills:
         env_cfg = PandaSkillEnvCfg(task="c1", terminate_on_success=False, reward=args.skill_reward,
                                    max_chain=args.max_chain, ref_path=args.ref, bank_path=args.bank)
     elif args.action.startswith("vocab"):
@@ -56,14 +62,15 @@ def main():
     env_cfg.scene.num_envs = args.num_envs
     env_cfg.sim.device = args.device
     env_cfg.seed = args.seed
-    base = PandaSkillEnv(env_cfg) if skills else PandaVocabEnv(env_cfg) if args.action.startswith("vocab") \
+    base = PandaKeypointEnv(env_cfg) if args.task == "keypoints" else PandaSkillEnv(env_cfg) if skills else PandaVocabEnv(env_cfg) if args.action.startswith("vocab") \
         else PandaTaskEnv(env_cfg)
     env = RslRlVecEnvWrapper(base)
 
     ppo_cfg = VocabPPOCfg if args.action.startswith("vocab") else RawPPOCfg
     agent_cfg = ppo_cfg(max_iterations=args.max_iterations, seed=args.seed, device=env.unwrapped.device)
     agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, metadata.version("rsl-rl-lib"))
-    default_name = f"skills_{args.skill_reward}_chain{args.max_chain}_s{args.seed}" if skills \
+    default_name = f"keypoints_chain{args.max_chain}_s{args.seed}" if args.task == "keypoints" else \
+        f"skills_{args.skill_reward}_chain{args.max_chain}_s{args.seed}" if skills \
         else f"{args.task}_{args.action}_s{args.seed}"
     log_dir = Path("runs/rl") / (args.run_name or default_name)
     log_dir.mkdir(parents=True, exist_ok=True)

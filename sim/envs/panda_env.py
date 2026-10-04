@@ -96,8 +96,9 @@ class PandaTaskEnvCfg(DirectRLEnvCfg):
     blue = _cube("Blue", (0.1, 0.2, 0.9))
     target = RigidObjectCfg(
         prim_path="/World/envs/env_.*/Target",
-        spawn=sim_utils.CylinderCfg(
-            radius=0.03, height=0.002,
+        # a 6 cm square pad: its corners are the destination keypoints of the keypoint reward
+        spawn=sim_utils.CuboidCfg(
+            size=(0.06, 0.06, 0.002),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.1, 0.8, 0.2)),

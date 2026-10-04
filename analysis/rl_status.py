@@ -44,7 +44,7 @@ def status(run):
 
 def main():
     root = Path("runs/rl")
-    runs = [root / a for a in sys.argv[1:]] or sorted(root.glob("skills_*"))
+    runs = [root / a for a in sys.argv[1:]] or sorted(root.glob("keypoints_*")) or sorted(root.glob("skills_*"))
     print("\n".join(status(r) for r in runs))
 
 

@@ -30,6 +30,8 @@ parser.add_argument("--ref", default="data/processed/skill_ref_standin.npz")
 parser.add_argument("--bank", default="data/processed/state_bank_standin.npz")
 parser.add_argument("--video", default=None)
 parser.add_argument("--video_envs", default="0,1")
+parser.add_argument("--num_envs", type=int, default=None, help="only the first N start states (videos: the policy loader "
+                    "also stores camera frames, so 100 envs with cameras do not fit next to a training run)")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 if args.video:
@@ -70,6 +72,7 @@ def main():
         layouts = tasks.sample_layouts(layout_task, 100, torch.Generator().manual_seed(4321))
     else:
         layouts = torch.load(STATES / f"{layout_task}.pt")["layouts"]
+    layouts = layouts[:args.num_envs]
     n = len(layouts)
     cfg = PandaSkillEnvCfg(task=layout_task, ref_path=args.ref, bank_path=args.bank, final_check=check,
                            episode_s=SECONDS_PER_COMMAND * len(chain) + 5, cameras=args.video is not None,
@@ -87,11 +90,22 @@ def main():
     if args.video:
         from sim.video import Recorder
         ids = [int(i) for i in args.video_envs.split(",")]
-        text = " > ".join(f"{s} {'rb'[c]}" for s, c, _ in chain)
-        rec = Recorder(args.video, env_ids=ids, caption=f"{name}: {args.chain} ({text})")
-        env.tick_callback = lambda e: rec.add(
-            e.images(), f"t = {e.ticks[ids[0]].item() * 0.1:4.1f} s  command {e.cur[ids[0]].item() + 1}/{len(chain)}: "
-                        f"{SKILLS[e.command()[0][ids[0]].item()]}")
+        rec = Recorder(args.video, env_ids=ids, caption="")
+
+        def frame(e):
+            # per frame: the command, how far the robot is from the clips' end state of that skill against the
+            # done radius, and where the fingertips are relative to the cube's centre (rows are the recorded envs)
+            s = e.state()
+            skill, cube, _ = e.command()
+            act = torch.where((cube == 1)[:, None], s["blue"], s["red"])
+            parts = []
+            for i in ids:
+                k = skill[i].item()
+                parts.append(f"{SKILLS[k]}: to clip end {e.end_err[i] * 100:.1f} cm (done < {e.ref_radius[k] * 100:.1f}), "
+                             f"hand {(s['tcp'][i, 2] - act[i, 2]) * 100:+.1f} cm vs cube centre, cube up {(act[i, 2] - 0.025) * 100:.1f}")
+            rec.add(e.images(), f"t {e.ticks[ids[0]].item() * 0.1:4.1f}s | " + " || ".join(parts))
+
+        env.tick_callback = frame
 
     captured = torch.zeros(n, dtype=torch.bool, device=env.device)
     rows = [None] * n
