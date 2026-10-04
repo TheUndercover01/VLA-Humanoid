@@ -21,7 +21,11 @@ parser.add_argument("--resume", default=None, help="checkpoint to continue from 
 parser.add_argument("--skill_reward", default="clip", choices=["clip", "sparse"],
                     help="--task skills: reward from the clips, or only the clip-defined done events (ablation)")
 parser.add_argument("--max_chain", type=int, default=2, help="--task skills: commands per training episode")
-parser.add_argument("--hold_fix", action="store_true", help="--task keypoints: reward for holding the cube at the goal, no speed check")
+parser.add_argument("--hold_fix", action="store_true", help="--task keypoints: reward for holding the cube at the goal, relaxed rest speed")
+parser.add_argument("--release", action="store_true", help="--task keypoints: done needs the gripper to end as in the clips")
+parser.add_argument("--time_cost", type=float, default=0.02, help="--task keypoints: reward cost per tick")
+parser.add_argument("--knock_penalty", action="store_true", help="--task keypoints: a cube off the table costs the remaining time")
+parser.add_argument("--rest_speed", type=float, default=0.0, help="--task keypoints: at-rest speed for done (m/s; 0 = default)")
 parser.add_argument("--ref", default=None, help="skill/keypoint reference (default: the stand-in one for --task)")
 parser.add_argument("--bank", default="data/processed/state_bank_standin.npz")
 AppLauncher.add_app_launcher_args(parser)
@@ -51,7 +55,9 @@ def main():
     skills = args.task in ("skills", "keypoints")
     if args.task == "keypoints":
         env_cfg = PandaKeypointEnvCfg(task="c1", terminate_on_success=False, max_chain=args.max_chain,
-                                      ref_path=args.ref, bank_path=args.bank, hold_fix=args.hold_fix)
+                                      ref_path=args.ref, bank_path=args.bank, hold_fix=args.hold_fix,
+                                      release=args.release, time_cost=args.time_cost,
+                                      knock_penalty=args.knock_penalty, rest_speed=args.rest_speed)
     elif skills:
         env_cfg = PandaSkillEnvCfg(task="c1", terminate_on_success=False, reward=args.skill_reward,
                                    max_chain=args.max_chain, ref_path=args.ref, bank_path=args.bank)
@@ -70,7 +76,8 @@ def main():
     ppo_cfg = VocabPPOCfg if args.action.startswith("vocab") else RawPPOCfg
     agent_cfg = ppo_cfg(max_iterations=args.max_iterations, seed=args.seed, device=env.unwrapped.device)
     agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, metadata.version("rsl-rl-lib"))
-    default_name = f"keypoints{'_hold' if args.hold_fix else ''}_chain{args.max_chain}_s{args.seed}" if args.task == "keypoints" else \
+    default_name = f"keypoints{'_hold' if args.hold_fix else ''}{'_v3' if args.release else ''}_chain{args.max_chain}_s{args.seed}" \
+        if args.task == "keypoints" else \
         f"skills_{args.skill_reward}_chain{args.max_chain}_s{args.seed}" if skills \
         else f"{args.task}_{args.action}_s{args.seed}"
     log_dir = Path("runs/rl") / (args.run_name or default_name)
@@ -82,7 +89,9 @@ def main():
         {"task": args.task, "seed": args.seed, "num_envs": args.num_envs, "action": args.action,
          "num_steps_per_env": agent_cfg.num_steps_per_env, "sim_seconds_per_iteration": sim_s_per_iter,
          "vocab": args.vocab if args.action.startswith("vocab") else None,
-         **({"skill_reward": args.skill_reward, "max_chain": args.max_chain, "ref": args.ref, "bank": args.bank}
+         **({"skill_reward": args.skill_reward, "max_chain": args.max_chain, "ref": args.ref, "bank": args.bank,
+             "hold_fix": args.hold_fix, "release": args.release, "time_cost": args.time_cost,
+             "knock_penalty": args.knock_penalty, "rest_speed": args.rest_speed}
             if skills else {})}, indent=1))
     if args.resume:
         (log_dir / "resumed.txt").open("a").write(f"resumed from {args.resume}\n")

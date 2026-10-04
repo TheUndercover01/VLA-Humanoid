@@ -13,6 +13,9 @@ Per skill (push, pick-lift, place-down; reach moves no object and has no waypoin
   delta     (3,)          mean displacement of the cube centre, start -> end, in the skill frame
                           (for pick-lift, the lift: where the goal is when no destination is given)
   moves     bool          the skill moves the cube sideways in most clips (needs a destination)
+  end_grip  float         how the hand ends the skill in the clips (grip, 1 = closed; mean of the last sample):
+                          place-down opens, pick-lift stays closed. With --release, a command is only done
+                          when the robot's gripper command ends the same way (same side of 0.5)
   end_turn  float         how much the clips turn the cube by the end: 90th percentile over clips of
                           the corner distance between its final pose and the same position with its
                           starting yaw (push turns the cube, lift and place do not); added to the done
@@ -103,6 +106,7 @@ def build(clips):
         out[f"{k}_delta"] = np.mean(deltas, 0).astype(np.float32)
         out[f"{k}_moves"] = moves
         out[f"{k}_end_turn"] = float(np.percentile([end_turn(c) for c in sel], 90))
+        out[f"{k}_end_grip"] = float(np.mean([np.asarray(c["grip"], float)[-1] for c in sel]))
         out[f"{k}_n"] = len(sel)
     return out
 
@@ -130,7 +134,8 @@ def main():
         print(f"{skill:10s} {ref[f'{k}_n']} clips, moves sideways: {ref[f'{k}_moves']} | centre offset from goal "
               f"{np.round(centre[0], 1)} -> {np.round(centre[N_WP // 2], 1)} -> {np.round(centre[-1], 1)} cm | "
               f"spread {sp[0] * 100:.1f} -> {sp[N_WP // 2] * 100:.1f} -> {sp[-1] * 100:.1f} cm | "
-              f"travel {np.round(ref[f'{k}_delta'] * 100, 1)} cm | end turn {ref[f'{k}_end_turn'] * 100:.1f} cm")
+              f"travel {np.round(ref[f'{k}_delta'] * 100, 1)} cm | end turn {ref[f'{k}_end_turn'] * 100:.1f} cm | "
+              f"end grip {ref[f'{k}_end_grip']:.2f}")
     print(f"-> {a.out}")
 
 

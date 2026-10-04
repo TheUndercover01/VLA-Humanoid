@@ -63,6 +63,14 @@ class PandaKeypointEnvCfg(PandaTaskEnvCfg):
     # never held it still in the air, so pick-lift was never done (PROGRESS.md, 4 Oct); with no speed check at
     # all, a cube slid through the goal while still held counted as placed
     hold_fix: bool = False
+    # v3 (22:10, user): rest_speed overrides the at-rest speed (m/s, 0 = REST / REST_HOLD); release: done also
+    # needs the gripper command to end as the clips' hand ends the skill (place-down open, pick-lift closed);
+    # time_cost per tick; knock_penalty: a cube off the table ends the episode and costs the time of the ticks
+    # left, so ending early never saves time cost
+    rest_speed: float = 0.0
+    release: bool = False
+    time_cost: float = TIME_COST
+    knock_penalty: bool = False
     observation_space = 76
     episode_s = 15.0
 
@@ -95,11 +103,13 @@ class PandaKeypointEnv(PandaTaskEnv):
         self.delta = torch.zeros(len(SKILLS), 3, device=dev)
         self.moves = torch.zeros(len(SKILLS), dtype=torch.bool, device=dev)
         self.done_tol = torch.full((len(SKILLS),), DONE_TOL, device=dev)
+        self.end_grip = torch.zeros(len(SKILLS), device=dev)
         for k, name in keys.items():
             self.wp[k] = torch.tensor(ref[f"{name}_waypoints"], device=dev)
             self.wp_tol[k] = torch.tensor(ref[f"{name}_spread"], device=dev).mul(2).clamp(min=WP_TOL_MIN)
             self.delta[k] = torch.tensor(ref[f"{name}_delta"], device=dev)
             self.moves[k] = bool(ref[f"{name}_moves"])
+            self.end_grip[k] = float(ref[f"{name}_end_grip"]) if f"{name}_end_grip" in ref.files else 0.0
             self.done_tol[k] = DONE_TOL + float(ref[f"{name}_end_turn"])
             # the last waypoint is the goal pose: same tolerance as done (the clips' spread there is measured
             # against each clip's own final pose, so it cannot contain how much the clips turn the cube)
@@ -227,12 +237,16 @@ class PandaKeypointEnv(PandaTaskEnv):
         speed = (ap - self.prev_pos).norm(dim=-1) / (self.cfg.sim.dt * self.cfg.decimation)
         self.prev_pos = ap.clone()
         pot = self.potential(ac)
-        rew = pot - self.pot - TIME_COST
+        rew = pot - self.pot - self.cfg.time_cost
         self.pot = pot
 
         at_end = self.wp_reached >= self.n_wp - 1
         tol = self.done_tol[self.command()[0]]
-        ok = at_end & (self.d_goal < tol) & (speed < (REST_HOLD if self.cfg.hold_fix else REST))
+        rest = self.cfg.rest_speed or (REST_HOLD if self.cfg.hold_fix else REST)
+        ok = at_end & (self.d_goal < tol) & (speed < rest)
+        if self.cfg.release:              # the gripper ends the skill as the clips' hand does
+            closed = 1 - (self.grip_target / 0.04).clamp(0, 1)
+            ok &= (closed > 0.5) == (self.end_grip[self.command()[0]] > 0.5)
         if self.cfg.hold_fix:
             rew = rew + HOLD_W * at_end.float() * torch.exp(-(self.d_goal / tol) ** 2)
         last = self.cur == self.n_cmd - 1
@@ -254,8 +268,12 @@ class PandaKeypointEnv(PandaTaskEnv):
         if adv.any():          # set the next command's goal now, so the policy never sees the finished one's
             self.start_commands(adv.nonzero().squeeze(-1))
 
+        was_knocked = self.knocked.clone()
         for c in (s["red"], s["blue"]):
             self.knocked |= (c[:, 2] < -0.05) | (c[:, :2].abs() > 0.5).any(-1)
+        if self.cfg.knock_penalty:
+            left = (self.max_episode_length - self.episode_length_buf).float()
+            self.rew_acc -= (self.knocked & ~was_knocked).float() * self.cfg.time_cost * left
         self._metrics(s)
         if self.tick_callback is not None:
             self.tick_callback(self)

@@ -11,7 +11,8 @@ shove (drives the hand through the cube at cube height instead of grasping it: t
 spun, never lifted); drop (lets go over the destination at carry height); disturb (first knocks the other
 cube, then does the task); spin (turns the wrist ~45 degrees while holding the cube); drag (place-down by
 lowering the cube to the table and sliding it to the destination); hover (holds the cube 5 cm above
-the destination and never sets it down). Also checks the corner distance's cube symmetry.
+the destination and never sets it down); hold_on (places like scripted, never opens); knock_off (drives
+the cube off the table, which ends the episode early). Also checks the corner distance's cube symmetry.
 """
 import argparse
 
@@ -23,6 +24,10 @@ parser.add_argument("--per_behaviour", type=int, default=32)
 parser.add_argument("--ref", default="data/processed/keypoint_ref_standin.npz")
 parser.add_argument("--debug", action="store_true", help="print env 0 every second")
 parser.add_argument("--hold_fix", action="store_true")
+parser.add_argument("--release", action="store_true")
+parser.add_argument("--time_cost", type=float, default=0.02)
+parser.add_argument("--knock_penalty", action="store_true")
+parser.add_argument("--rest_speed", type=float, default=0.0)
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 app = AppLauncher(args).app
@@ -42,12 +47,13 @@ CHAINS = {
     "c2": [("pick-lift", 0, NONE), ("place-down", 0, OTHER)],
     "c3": [("push", 1, TARGET), ("pick-lift", 0, NONE), ("place-down", 0, OTHER)],
 }
-BEHAVIOURS = ["scripted", "idle", "open_hand", "shove", "drop", "disturb", "spin", "drag", "hover"]
+BEHAVIOURS = ["scripted", "idle", "open_hand", "shove", "drop", "disturb", "spin", "drag", "hover", "hold_on", "knock_off"]
 def main():
     k = args.per_behaviour
     n = k * len(BEHAVIOURS)
     cfg = PandaKeypointEnvCfg(task=args.task, terminate_on_success=False, ref_path=args.ref, episode_s=20.0,
-                              hold_fix=args.hold_fix)
+                              hold_fix=args.hold_fix, release=args.release, time_cost=args.time_cost,
+                              knock_penalty=args.knock_penalty, rest_speed=args.rest_speed)
     cfg.scene.num_envs = n
     cfg.sim.device = args.device
     env = PandaKeypointEnv(cfg)
@@ -67,6 +73,7 @@ def main():
         print(f"symmetry: cube {name:12s} -> corner distance {d * 100:.2f} cm", flush=True)
     group = torch.arange(n, device=dev) // k
     ret = torch.zeros(n, device=dev)
+    alive = torch.ones(n, dtype=torch.bool, device=dev)
     task_hold = torch.zeros(n, dtype=torch.long, device=dev)
     task_ok = torch.zeros(n, dtype=torch.bool, device=dev)
     chain_ok = torch.zeros(n, dtype=torch.bool, device=dev)
@@ -138,10 +145,19 @@ def main():
         hov = (group == 8) & (skill == PLACE)
         a[hov, :3] = ((goal + up(0.05) + held_off - env.cmd) / MAX_DXYZ).clamp(-1, 1)[hov]
         a[hov, 4] = -1.0
+        # hold_on: places the cube exactly like the scripted policy but never opens the fingers
+        a[(group == 9) & (skill == PLACE), 4] = -1.0
+        # knock_off: drives the cube off the far edge of the table at once (the episode ends early)
+        ko = group == 10
+        far = torch.cat([ap[:, :1] + 0.6, ap[:, 1:2], ap[:, 2:3]], -1)
+        a[ko, :3] = ((far - env.cmd) / MAX_DXYZ).clamp(-1, 1)[ko]
+        a[ko & (env.ticks < 15), :3] = ((ap + up(0.0) - torch.tensor([0.06, 0, 0], device=dev) - env.cmd)
+                                        / MAX_DXYZ).clamp(-1, 1)[ko & (env.ticks < 15)]
         env.step(a)
         if expert is not None:
             expert.update(env)
-        ret += env.reward_buf if hasattr(env, "reward_buf") else 0
+        ret += env.reward_buf * alive          # first episode only (knock_off ends it early, then it resets)
+        alive &= ~env.episode_done
     chain = " > ".join(s for s, _, _ in CHAINS[args.task])
     nc = len(CHAINS[args.task])
     lines = [f"\n{args.task}: {chain} ({k} envs per behaviour, {env.max_episode_length * 0.1:.0f} s, {args.ref})",

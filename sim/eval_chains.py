@@ -38,6 +38,10 @@ parser.add_argument("--name", default=None)
 parser.add_argument("--out", default=None)
 parser.add_argument("--keypoints", action="store_true", help="keypoint env and chains (object-only reward)")
 parser.add_argument("--hold_fix", action="store_true", help="keypoint env with the hold fix (as the policy was trained)")
+parser.add_argument("--release", action="store_true")
+parser.add_argument("--time_cost", type=float, default=0.02)
+parser.add_argument("--knock_penalty", action="store_true")
+parser.add_argument("--rest_speed", type=float, default=0.0)
 parser.add_argument("--ref", default=None, help="default: the stand-in reference of the env")
 parser.add_argument("--bank", default=None)
 parser.add_argument("--video", default=None)
@@ -106,7 +110,8 @@ def main():
               cameras=args.video is not None, image_size=384)
     cfg.ref_path = args.ref or cfg.ref_path
     if args.keypoints:
-        cfg.hold_fix = args.hold_fix
+        cfg.hold_fix, cfg.release, cfg.time_cost = args.hold_fix, args.release, args.time_cost
+        cfg.knock_penalty, cfg.rest_speed = args.knock_penalty, args.rest_speed
     cfg.bank_path = args.bank or cfg.bank_path
     cfg.scene.num_envs = n
     cfg.sim.device = args.device
