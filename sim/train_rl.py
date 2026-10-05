@@ -26,6 +26,7 @@ parser.add_argument("--release", action="store_true", help="--task keypoints: do
 parser.add_argument("--time_cost", type=float, default=0.02, help="--task keypoints: reward cost per tick")
 parser.add_argument("--knock_penalty", action="store_true", help="--task keypoints: a cube off the table costs the remaining time")
 parser.add_argument("--rest_speed", type=float, default=0.0, help="--task keypoints: at-rest speed for done (m/s; 0 = default)")
+parser.add_argument("--action_rate", type=float, default=0.0, help="--task keypoints: penalty on squared action change per step")
 parser.add_argument("--ref", default=None, help="skill/keypoint reference (default: the stand-in one for --task)")
 parser.add_argument("--bank", default="data/processed/state_bank_standin.npz")
 AppLauncher.add_app_launcher_args(parser)
@@ -57,7 +58,8 @@ def main():
         env_cfg = PandaKeypointEnvCfg(task="c1", terminate_on_success=False, max_chain=args.max_chain,
                                       ref_path=args.ref, bank_path=args.bank, hold_fix=args.hold_fix,
                                       release=args.release, time_cost=args.time_cost,
-                                      knock_penalty=args.knock_penalty, rest_speed=args.rest_speed)
+                                      knock_penalty=args.knock_penalty, rest_speed=args.rest_speed,
+                                      action_rate=args.action_rate)
     elif skills:
         env_cfg = PandaSkillEnvCfg(task="c1", terminate_on_success=False, reward=args.skill_reward,
                                    max_chain=args.max_chain, ref_path=args.ref, bank_path=args.bank)
@@ -91,7 +93,7 @@ def main():
          "vocab": args.vocab if args.action.startswith("vocab") else None,
          **({"skill_reward": args.skill_reward, "max_chain": args.max_chain, "ref": args.ref, "bank": args.bank,
              "hold_fix": args.hold_fix, "release": args.release, "time_cost": args.time_cost,
-             "knock_penalty": args.knock_penalty, "rest_speed": args.rest_speed}
+             "knock_penalty": args.knock_penalty, "rest_speed": args.rest_speed, "action_rate": args.action_rate}
             if skills else {})}, indent=1))
     if args.resume:
         (log_dir / "resumed.txt").open("a").write(f"resumed from {args.resume}\n")

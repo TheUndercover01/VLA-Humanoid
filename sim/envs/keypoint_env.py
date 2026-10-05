@@ -71,6 +71,9 @@ class PandaKeypointEnvCfg(PandaTaskEnvCfg):
     release: bool = False
     time_cost: float = TIME_COST
     knock_penalty: bool = False
+    # action_rate (5 Oct, user): - action_rate x sum over dx..dyaw of (a_t - a_{t-1})^2 per step. The RL teacher's
+    # actions were bang-bang (~30% of steps flip sign), which a VLA cannot imitate; this makes the teacher smooth.
+    action_rate: float = 0.0
     observation_space = 76
     episode_s = 15.0
 
@@ -144,6 +147,7 @@ class PandaKeypointEnv(PandaTaskEnv):
         self.d_next = torch.zeros(n, device=dev)
         self.d_goal = torch.zeros(n, device=dev)
         self.prev_pos = torch.zeros(n, 3, device=dev)
+        self.prev_action = torch.full((n, 5), torch.nan, device=dev)
         self.last_episode["completed"] = torch.zeros(n, device=dev)
         self.last_episode["n_cmd"] = torch.zeros(n, device=dev)
         self.skill_stats = np.zeros((len(SKILLS), 2))
@@ -223,6 +227,14 @@ class PandaKeypointEnv(PandaTaskEnv):
         close = torch.exp(-(self.d_next / tol[rows, nxt]) ** 2)
         close = torch.where(self.wp_reached >= self.n_wp - 1, torch.ones_like(close), close)
         return self.wp_reached.float() + close
+
+    def _pre_physics_step(self, actions):
+        super()._pre_physics_step(actions)
+        if self.cfg.action_rate > 0:            # after super(), which resets this step's reward accumulator
+            a = actions.clamp(-1.0, 1.0)
+            d = torch.nan_to_num(a[:, :4] - self.prev_action[:, :4], nan=0.0)   # no penalty on an episode's first step
+            self.rew_acc -= self.cfg.action_rate * (d ** 2).sum(-1)
+            self.prev_action = a.clone()
 
     # ---------- per tick ----------
     def _tick(self):
@@ -402,6 +414,7 @@ class PandaKeypointEnv(PandaTaskEnv):
         self.last_done[env_ids] = False
         self.need_start[env_ids] = True
         self.lift_start[env_ids] = torch.nan
+        self.prev_action[env_ids] = torch.nan
 
         dev = self.device
         origin = self.table_origin[env_ids]

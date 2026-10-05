@@ -28,6 +28,7 @@ parser.add_argument("--release", action="store_true")
 parser.add_argument("--time_cost", type=float, default=0.02)
 parser.add_argument("--knock_penalty", action="store_true")
 parser.add_argument("--rest_speed", type=float, default=0.0)
+parser.add_argument("--action_rate", type=float, default=0.0)
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 app = AppLauncher(args).app
@@ -53,7 +54,8 @@ def main():
     n = k * len(BEHAVIOURS)
     cfg = PandaKeypointEnvCfg(task=args.task, terminate_on_success=False, ref_path=args.ref, episode_s=20.0,
                               hold_fix=args.hold_fix, release=args.release, time_cost=args.time_cost,
-                              knock_penalty=args.knock_penalty, rest_speed=args.rest_speed)
+                              knock_penalty=args.knock_penalty, rest_speed=args.rest_speed,
+                              action_rate=args.action_rate)
     cfg.scene.num_envs = n
     cfg.sim.device = args.device
     env = PandaKeypointEnv(cfg)
