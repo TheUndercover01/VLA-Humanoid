@@ -199,3 +199,54 @@ Why: the first clip reward (fingertip + cube path, 6-D) let the policy park 1-2 
   1. Label smoothing (`vla/smooth_labels.py`): same dataset, each frame's dx..dyaw label = mean of the teacher's next 5 actions (0.5 s) within the episode, grip unchanged, action stats recomputed; videos hard-linked, no re-encoding (minutes instead of hours). Movement labels at +-1: 30-55% -> 2-17%. SmolVLA fine-tune on it (`ours_kp_hold_seq_smooth`, same settings, GPU 0) + eval queued.
   2. Smooth teacher: `--action_rate c` adds -c x sum over dx..dyaw of (a_t - a_{t-1})^2 per step (sim/envs/keypoint_env.py). Run `keypoints_hold_smooth_chain2_s1` (GPU 0): the hold-fix reward exactly (time 0.02, rest 10 cm/s, no release, no knock penalty; user) + action_rate 0.02, continued from the hold-fix iteration-1000 weights to 2000. Reward check (lift, C1): scripted 100%, agreement 100%, cheats below scripted (hold_on done again, no release).
 - DiT fine-tune on `ours_kp_hold_seq` stopped at ~step 10k (user: later). X-VLA (batch 12) still training on GPU 1; pi0.5 still blocked on the gated PaliGemma tokenizer.
+
+---
+## HANDOFF (Mon 5 Oct, 14:35) — read this first if you are taking over
+
+Deadline Fri 9 Oct 23:59 BST. Brief: `CLOUD_PROMPT.md` (the method has since changed, see below). Filming protocol for the real phone clips (today): `FILMING.md`.
+
+### The user's rules and preferences (important)
+- **Never stop/restart a training run without the user saying so.** Report, propose, wait. (Diagnostic probes/evals in separate small processes are fine.)
+- **Log every result as a "what worked" / "what didn't work (n)" entry** in this file right away, with the numbers and the measured cause; the README's sections are written from it.
+- Reward must be **object-only** (cube keypoints), derived from the clips. The user explicitly rejected gripper-based terms (release-as-done, knock-off penalty). Time cost and the at-rest speed are accepted; the action-change penalty was added on request for smoothness.
+- Training uses **at most one hand-off** (2 commands per episode); longer chains are evaluation only. Distilled VLA should take the **whole task prompt, no planner**.
+- Status updates were requested every ~20 min while things run (session cron, re-create it if you want them).
+
+### Current method (as of now)
+1. Clips (`t, ee_pos, ee_yaw, grip, obj_pos, obj_quat, skill`, 10 Hz, table frame) -> `motion/keypoint_ref.py`: each skill (push, pick-lift, place-down) becomes 20 waypoints of the cube's 8 corners relative to where it ends, in the travel frame; per-waypoint spread; lift height; end grip; end turn. Reach has no waypoints (its clips are only start states). Stand-in clips: `data/processed/clips_standin/` (scripted, with obj_quat); ref `data/processed/keypoint_ref_standin.npz`; state bank `data/processed/state_bank_standin_v2.npz` (`sim/record_state_bank.py`).
+2. `sim/envs/keypoint_env.py` (PandaKeypointEnv): command chains (skill, cube, dest); reward = change in potential (waypoints reached + closeness to the next, nearest-corner distance) - 0.02/tick + 5 per command done + 0.1/tick while the last is done. Flags: `--hold_fix` (+0.1 x closeness at the goal once all waypoints are reached; at-rest 10 cm/s) — **required**; `--time_cost`, `--rest_speed`, `--action_rate` (new); `--release`, `--knock_penalty` exist but the user rejected them. Reward checks: `sim/check_keypoint_reward.py` (scripted follower `sim/keypoint_follower.py` + 10 cheats; always run before a new reward variant). Tests: `python -m pytest tests -q` (31 pass).
+3. PPO (rsl_rl) 16,384 envs per GPU (32k fails: PhysX 64K-material limit), `sim/train_rl.py --task keypoints ...`, status `python -m analysis.rl_status <run>` (its "h to 3000" is wrong for resumed runs).
+4. Distillation: `sim/record_keypoint_rollouts.py` (teacher + cameras + DART 0.3, per-frame command prompts, successful episodes only) -> `vla/build_dataset.py [--prompt_mode sequence]` -> fine-tune -> `sim/eval_chains.py --keypoints --policy vla [--whole_prompt]` via `vla/server.py` (any LeRobot policy type). Automation: `scripts/eval_vla_student.sh <train_name> <port> <server_gpu>`.
+
+### RL results (validation layouts, 100 each)
+| teacher | push | lift | C1 | C2 | C3 | swap | unstack (4 cmds) | restack (6 cmds) |
+|---|---|---|---|---|---|---|---|---|
+| hold fix, it. 300 | 88 | 74 | 79 | 0 | 0 | 86 | 61 | 44 |
+| **hold fix, it. 1000** (`runs/rl/keypoints_hold_chain2_s1/model_1000.pt`; cuda:0 copy in `..._gpu0/`) | 84 | 96 | 97 | 0 | 0 | 96 | 93 | 84 |
+C2/C3 = 0 only because the policy never opens the gripper on a stacked cube and the eval check requires release (known limitation of the object-only reward; the user chose not to add a release term). Training curves: pick-lift 86%, place-down 95%, chains 49% at the plateau (iteration ~1000-1900).
+
+### Distillation results so far
+- SmolVLA on raw teacher actions, whole-prompt data (`ours_kp_hold_seq`): ~0 everywhere (push 14 whole prompt / 6 step). Fit check (`vla/check_fit.py`): no better than predicting the mean on x/y. Cause: teacher actions are bang-bang (~30% sign flips per step, only 12-28% of variance is consistent signal). See "what didn't work (8)".
+- Scripted-demo control (same pipeline, smooth actions, earlier): SmolVLA C1 52/100 -> the pipeline works with smooth labels.
+
+### Running right now (do not stop without the user)
+| GPU | job | log | expected |
+|---|---|---|---|
+| 0 | **Smooth teacher RL** `runs/rl/keypoints_hold_smooth_chain2_s1` (hold fix + `--action_rate 0.02`, resumed from hold it. 1000, to it. 2000) | `/media/storage/ayush/cache/rl_keypoints_hold_smooth.log` | keeps skills so far (it. ~1015: pick-lift 86%, chains 50%); ~36 s/iter while sharing GPU 0, ~8.5 s/iter alone -> several hours |
+| 0 | **SmolVLA on smoothed labels** `ours_kp_hold_seq_smooth` (`vla/smooth_labels.py`, 0.5 s forward mean of dx..dyaw) | `cache/ft_ours_kp_hold_seq_smooth.log` | ~16:15; then `eval_vla_student.sh` (PID watcher running) evaluates all 8 chains whole/step -> `cache/distill_status.txt` |
+| 1 | **X-VLA on raw labels** `ours_kp_hold_seq_xvla` (batch 12, bf16) | `cache/ft_ours_kp_hold_seq_xvla.log` | ~15:05; eval watcher running, same output |
+Stopped/kept: DiT on `ours_kp_hold_seq` at ~step 10k (`/media/storage/ayush/vla_data/train/ours_kp_hold_seq_dit`, "later" per user). pi0.5 blocked: gated `google/paligemma-3b-pt-224` tokenizer, needs the user's HF licence + `huggingface-cli login`.
+
+### Next steps
+1. When the SmolVLA-smoothed eval lands: if it fits/works, smoothing was the fix -> also try X-VLA/DiT on smoothed labels; if not, check fit (`vla/check_fit.py`) first.
+2. When the smooth teacher is done: measure its action jitter (fraction of sign flips, as in "what didn't work (8)"), eval it on all chains (`sim/eval_chains.py --keypoints --hold_fix --action_rate 0.02 --chain <c> --val --policy rsl:<ckpt>`; copy the checkpoint to cuda:0 for camera runs), then re-record (`scripts/distill_when_ready.sh` with `TEACHER=... FLAGS="--hold_fix --action_rate 0.02" REC_FLAGS="--hold_fix" NAME=...`, note the recorder has no --action_rate flag; it only matters for reward, not for recording) and build the whole-prompt dataset. The dataset build with split copies took 7 h — consider `--prompt_mode step` speed or skipping split copies, or relabel an existing dataset instead (as smooth_labels.py does).
+3. Real clips (filmed today per FILMING.md): need a laptop/handtrack step producing obj_quat from ArUco; then `motion/keypoint_ref.py --clips data/processed/clips` and `sim/record_state_bank.py` on them, retrain the teacher.
+4. Baselines still to redo for the final table: B1 (SmolVLA on the real clips) and B1 + planner, on the keypoint chains.
+5. README: results tables above, "what didn't work" (1)-(8) and the entries since, figures/videos (`media/18_waypoints_from_clips_to_sim.mp4`, `media/40_*`-`47_*` hold-fix it. 1000 tasks).
+
+### Gotchas
+- Isaac camera rendering only on cuda:0; set `CUDA_VISIBLE_DEVICES=0` for camera evals, and map checkpoints saved on cuda:1 to cuda:0 (`torch.load(map_location="cuda:0")`) before.
+- Never `pkill -f`/`grep` with a pattern that also matches your own shell command (killed the shell several times); kill by PID.
+- Isaac scripts run via `app.close()` hard-exit: print with `flush=True` or output is lost.
+- `scripts/run_isaac.sh` + `setsid nohup` for anything long; git push over SSH: `git push git@github.com:TheUndercover01/VLA-Humanoid.git gpu:gpu`.
+- LeRobot env: `/media/storage/ayush/miniconda3/envs/lerobot/bin/python`; Isaac: `.../envs/isaaclab/bin/python`; HF cache `HF_HOME=/media/storage/ayush/cache/hf`.
