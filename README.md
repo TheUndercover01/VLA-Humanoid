@@ -9,7 +9,9 @@ and a vision-language-action model (SmolVLA, 450M) has to carry it out from came
 planner splits the sentence, and nothing from the simulator tells the policy which command it is on. The policy keeps its own place:
 when it thinks a command is finished it writes **"(done)"** after it in the sentence it reads next.
 
-<!-- media/headline/ours_cyl_marks_restack_env0.mp4: 6 of 6 commands in order -->
+![Six commands from one sentence, done in order (3x speed). Caption: the command the policy believes it is on, and its done flag.](results/site_media/restack_6of6.gif)
+
+**Project page with all videos:** https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/
 
 ## Headline result
 
@@ -50,25 +52,35 @@ phone clips (atomic skills) ──► ArUco markers tracked ──► object pat
                      inference: the sentence once; the policy's own done flag (> 0.85 for 5 ticks) writes the next "(done)" mark
 ```
 
-1. **Clips → reward.** 46 approved clips (43 trackable): 12 push, 10 pick-lift, 21 place-down. ArUco markers on the cube (ids 1–5) and the can lid (0); the target (11) and a calibration marker (13) define the table plane. From each clip only the object's start and end are kept: the template is a straight line from the clips' mean start offset to the goal with a 3 cm tolerance (the clips' median deviation from that line is 2.6–3.2 cm). Lift height (20.4 cm), drop height, push direction and end turn come from the clips. `handtrack/`, `motion/keypoint_ref.py`, video: `media/site/real_clip_to_template.mp4`.
+1. **Clips → reward.** 46 approved clips (43 trackable): 12 push, 10 pick-lift, 21 place-down. ArUco markers on the cube (ids 1–5) and the can lid (0); the target (11) and a calibration marker (13) define the table plane. From each clip only the object's start and end are kept: the template is a straight line from the clips' mean start offset to the goal with a 3 cm tolerance (the clips' median deviation from that line is 2.6–3.2 cm). Lift height (20.4 cm), drop height, push direction and end turn come from the clips. `handtrack/`, `motion/keypoint_ref.py`, `analysis/clip_video.py`.
+
+   ![A phone clip with the tracked markers, next to the object path and the straight template the reward uses](results/site_media/real_clip_to_template.gif)
 2. **Teacher.** PPO on the object-keypoint reward (8 corners of the object following the template), hold-still bonus once the goal is reached, action low-pass 0.95 so the actions are smooth enough to imitate. `sim/envs/keypoint_env.py`, `sim/train_rl.py`, `scripts/train_teacher.sh`.
 3. **Distillation.** 3000 paired episodes (the same scene recorded once per object, so the policy must read the object's name) + 1500 extra push episodes. `sim/record_keypoint_rollouts.py`, `vla/build_dataset.py --prompt_mode marks --pad even --max_cmds 20`, `scripts/distill_place.sh`. SmolVLA from `smolvla_base`, early-stopped at 34K steps.
 4. **Evaluation.** `sim/eval_chains.py --learned_done --marks --whole_prompt`: the sentence is given once; the only thing that moves the policy's place is its own done flag.
 
 ## What we learned by perturbing the same checkpoint
 
-All on the headline checkpoint, eval only (`scripts/perturb_study.sh`, 50 layouts each). *Numbers being filled in.*
+All on the headline checkpoint, eval only, no retraining (`sim/eval_chains.py --perturb`, `scripts/perturb_study.sh`, 50 layouts per row, videos in `media/perturb/`).
+"Redone" = the sentence's end result was reached again (held 0.5 s) after the disturbance.
 
 | test | what is done to it | result |
 |---|---|---|
-| knock | the finished object is thrown to a free spot | TBD |
-| knock + erase 2 marks | same, and its last two "(done)" marks are erased (done → not done at inference) | TBD |
-| drop | the object falls out of the gripper after "pick up" is marked | TBD |
-| drop + erase 1 mark | same, "pick up" un-marked | TBD |
-| move | the object is moved while the arm reaches for it | TBD |
-| pre-marked | unstack, the first two commands already marked "(done)" at the start | TBD |
-| no marks (ablation) | the done flag is ignored, the sentence never changes | TBD |
-| oracle marks (ablation) | the marks are written by the simulator's check, not the policy | TBD |
+| **no marks** (ablation) | the done flag is ignored, the sentence never changes | unstack **0 / 50** (0.72 of 4 commands) |
+| **pre-written marks** | unstack starts with the cube on the table and the first two commands already marked "(done)" | **42 / 50** finish (3.68 of 4 in order): it skips to command 3 |
+| **oracle marks** (ablation) | the marks are written by the simulator's check instead of the policy's flag | unstack in order **31 / 50** (own flag: 29 / 100); restack 10 / 50 (own: 13 / 100) |
+| knock | the finished cube is thrown to a free spot, its marks untouched | 16 of 30 redone (median 11.5 s) |
+| knock + erase 2 marks | same, and the last two "(done)" marks are erased at that moment (done → not done) | 14 of 29 redone (10.6 s) |
+| knock a stack + erase 2 marks (c2) | the cube is thrown off the cylinder | 5 of 29 redone |
+| drop | the cube is taken out of the gripper after "pick up" is marked | 10 of 36 redone |
+| drop + un-mark "pick up" | same, "pick up" un-marked | 9 of 32 redone |
+| move | the cube is moved to a new spot while the arm reaches for it | 12 / 50 (undisturbed: 63 / 100) |
+
+**What this says.**
+1. **The marks are the memory, and the policy reads them.** Without them the 4-command chain never finishes (0 / 50); with two marks written in advance it starts at the right command (42 / 50).
+2. **On 4 commands about half of the loss is the memory; on 6 it is the skill.** Perfect marks double unstack in order (29 → 62%) but barely move restack (13 → 20%): there the commands fail even with the right mark (stacking the cylinder on the cube is 41% on its own).
+3. **After the work is done, recovery comes from the image, not from the text.** A thrown-away cube is fetched back about half the time whether or not its marks are erased (16 / 30 vs 14 / 29), even though the sentence says everything is done. Training never showed a knock, so this is not learned recovery; the policy reacts to "cube not on the target" in the image.
+4. **Weak spots:** re-targeting an object that moves during the reach (12 / 50), rebuilding a stack (5 / 29), and the done flag firing early: in the drop test some drops happened with both commands already marked done while the cube was still in the air.
 
 ## What worked and what did not
 
@@ -76,7 +88,7 @@ All on the headline checkpoint, eval only (`scripts/perturb_study.sh`, 50 layout
 * **A reward built from object paths only.** The teacher learns every skill from it and composes: random chains of 4 to 20 commands at 44–48 of 50 in order (`results/comparative/eval_csvs_8oct/len_teacher_*`). The length curve is flat, so the task does not get harder with length; any drop of the student is the student's.
 * **Paired counterfactual episodes** fixed which object the policy acts on (earlier red/blue students: lift 45 → 80 when every scene was recorded once per cube).
 * **Imitating the filtered, executed action**, not the raw RL action. Raw bang-bang PPO actions could not be fitted at all (the fit was no better than the mean).
-* **A learned done flag as memory.** Without a progress signal the whole-sentence student completed unstack in order 1 time in 100; with its own done count, 42.
+* **The policy's own done flag as memory.** Same checkpoint, flag ignored: unstack 0 / 50. Flag writing the marks: 60 / 100 lenient, 29 in order. (In the earlier red/blue setup a whole-sentence student without any progress signal did unstack in order 1 time in 100.)
 * **Marks in the text beat a number in the state.** Same data, same budget: restack in order 13 vs 0, unstack 29 vs 4, push 44 vs 34. The marks student's flag is right 59–72% of the time, the number student's 28–31%.
 * **More push data.** Push went 23 → 44 when push episodes went from 12% to 27% of the frames.
 
