@@ -1,0 +1,101 @@
+model,task,seed,state,success,failure_stage,time,jerk,peak_force,skills
+b1_standin_llm,c1,0,0,0,reach,14.9,6.044,39.52,reach
+b1_standin_llm,c1,0,1,0,transport,14.9,6.466,54.54,reach > pick-lift > place-down
+b1_standin_llm,c1,0,2,0,reach,14.9,8.628,4.97,reach
+b1_standin_llm,c1,0,3,0,transport,14.9,4.007,52.73,reach > pick-lift > place-down
+b1_standin_llm,c1,0,4,0,transport,14.9,7.218,29.04,reach > pick-lift > place-down
+b1_standin_llm,c1,0,5,0,transport,14.9,4.366,31.69,reach > pick-lift > place-down
+b1_standin_llm,c1,0,6,0,reach,14.9,9.384,4.81,reach
+b1_standin_llm,c1,0,7,0,transport,14.9,7.699,38.92,reach > pick-lift > place-down
+b1_standin_llm,c1,0,8,0,reach,14.9,9.16,0.5,reach
+b1_standin_llm,c1,0,9,0,transport,14.9,3.824,3.75,reach > pick-lift > place-down
+b1_standin_llm,c1,0,10,0,grasp,14.9,8.468,19.13,reach
+b1_standin_llm,c1,0,11,0,reach,14.9,8.812,0.54,reach
+b1_standin_llm,c1,0,12,0,grasp,14.9,9.065,6.07,reach
+b1_standin_llm,c1,0,13,0,transport,14.9,5.515,55.91,reach > pick-lift > place-down
+b1_standin_llm,c1,0,14,0,reach,14.9,9.539,20.63,reach
+b1_standin_llm,c1,0,15,0,grasp,14.9,9.0,5.03,reach
+b1_standin_llm,c1,0,16,0,reach,14.9,7.715,0.56,reach
+b1_standin_llm,c1,0,17,0,reach,14.9,8.635,35.83,reach
+b1_standin_llm,c1,0,18,0,transport,14.9,4.447,25.98,reach > pick-lift > place-down
+b1_standin_llm,c1,0,19,0,grasp,14.9,6.853,16.45,reach > pick-lift
+b1_standin_llm,c1,0,20,0,transport,14.9,3.546,45.98,reach > pick-lift > place-down
+b1_standin_llm,c1,0,21,0,grasp,14.9,9.699,8.54,reach
+b1_standin_llm,c1,0,22,0,grasp,14.9,10.085,15.48,reach
+b1_standin_llm,c1,0,23,0,grasp,14.9,8.35,6.36,reach
+b1_standin_llm,c1,0,24,0,transport,14.9,4.385,4.58,reach > pick-lift > place-down
+b1_standin_llm,c1,0,25,0,reach,14.9,8.516,0.55,reach
+b1_standin_llm,c1,0,26,0,transport,14.9,3.415,3.88,reach > pick-lift > place-down
+b1_standin_llm,c1,0,27,0,reach,14.9,9.649,0.49,reach
+b1_standin_llm,c1,0,28,0,reach,14.9,8.917,15.62,reach
+b1_standin_llm,c1,0,29,0,grasp,14.9,6.929,11.25,reach > pick-lift
+b1_standin_llm,c1,0,30,0,grasp,14.9,6.871,38.35,reach
+b1_standin_llm,c1,0,31,0,reach,14.9,8.779,1.4,reach
+b1_standin_llm,c1,0,32,0,transport,14.9,6.16,10.39,reach > pick-lift > place-down
+b1_standin_llm,c1,0,33,0,transport,14.9,3.821,45.0,reach > pick-lift > place-down
+b1_standin_llm,c1,0,34,0,reach,14.9,8.915,0.51,reach
+b1_standin_llm,c1,0,35,0,reach,14.9,8.538,68.28,reach
+b1_standin_llm,c1,0,36,0,reach,14.9,9.299,0.53,reach
+b1_standin_llm,c1,0,37,0,grasp,14.9,10.342,12.36,reach
+b1_standin_llm,c1,0,38,0,transport,14.9,6.317,59.8,reach > pick-lift > place-down
+b1_standin_llm,c1,0,39,0,reach,14.9,9.168,0.51,reach
+b1_standin_llm,c1,0,40,0,reach,14.9,7.678,49.24,reach
+b1_standin_llm,c1,0,41,0,reach,14.9,8.118,1.57,reach
+b1_standin_llm,c1,0,42,0,grasp,14.9,6.811,35.05,reach
+b1_standin_llm,c1,0,43,0,reach,14.9,8.203,30.49,reach
+b1_standin_llm,c1,0,44,0,reach,14.9,7.986,0.54,reach
+b1_standin_llm,c1,0,45,0,grasp,14.9,9.069,32.28,reach
+b1_standin_llm,c1,0,46,0,reach,14.9,9.196,0.5,reach
+b1_standin_llm,c1,0,47,0,reach,14.9,9.219,16.31,reach
+b1_standin_llm,c1,0,48,0,reach,14.9,6.389,35.72,reach
+b1_standin_llm,c1,0,49,0,reach,14.9,9.669,14.05,reach
+b1_standin_llm,c1,0,50,0,grasp,14.9,8.941,11.18,reach
+b1_standin_llm,c1,0,51,0,transport,14.9,3.886,34.82,reach > pick-lift > place-down
+b1_standin_llm,c1,0,52,0,reach,14.9,8.649,48.85,reach
+b1_standin_llm,c1,0,53,0,transport,14.9,5.304,17.44,reach > pick-lift > place-down
+b1_standin_llm,c1,0,54,0,reach,14.9,8.317,0.52,reach
+b1_standin_llm,c1,0,55,0,transport,14.9,5.218,34.37,reach > pick-lift > place-down
+b1_standin_llm,c1,0,56,0,reach,14.9,7.669,17.81,reach
+b1_standin_llm,c1,0,57,0,transport,14.9,5.044,30.63,reach > pick-lift > place-down
+b1_standin_llm,c1,0,58,0,grasp,14.9,8.165,8.8,reach
+b1_standin_llm,c1,0,59,0,reach,14.9,9.275,0.49,reach
+b1_standin_llm,c1,0,60,0,reach,14.9,9.112,23.72,reach
+b1_standin_llm,c1,0,61,0,reach,14.9,8.865,0.52,reach
+b1_standin_llm,c1,0,62,0,transport,14.9,4.285,4.09,reach > pick-lift > place-down
+b1_standin_llm,c1,0,63,0,transport,14.9,8.414,55.95,reach > pick-lift > place-down
+b1_standin_llm,c1,0,64,0,transport,14.9,4.173,38.62,reach > pick-lift > place-down
+b1_standin_llm,c1,0,65,0,reach,14.9,9.188,0.51,reach
+b1_standin_llm,c1,0,66,0,reach,14.9,9.201,6.36,reach
+b1_standin_llm,c1,0,67,0,reach,14.9,8.512,1.58,reach
+b1_standin_llm,c1,0,68,0,transport,14.9,3.351,40.88,reach > pick-lift > place-down
+b1_standin_llm,c1,0,69,0,grasp,14.9,7.928,17.36,reach
+b1_standin_llm,c1,0,70,0,transport,14.9,3.836,17.79,reach > pick-lift > place-down
+b1_standin_llm,c1,0,71,0,grasp,14.9,6.884,42.32,reach > pick-lift
+b1_standin_llm,c1,0,72,0,reach,14.9,8.238,27.0,reach
+b1_standin_llm,c1,0,73,0,transport,14.9,4.357,51.28,reach > pick-lift > place-down
+b1_standin_llm,c1,0,74,0,transport,14.9,4.003,48.68,reach > pick-lift > place-down
+b1_standin_llm,c1,0,75,0,transport,14.9,8.42,20.16,reach > pick-lift > place-down
+b1_standin_llm,c1,0,76,0,reach,14.9,8.266,16.87,reach
+b1_standin_llm,c1,0,77,0,grasp,14.9,7.357,30.46,reach > pick-lift
+b1_standin_llm,c1,0,78,0,reach,14.9,8.92,0.54,reach
+b1_standin_llm,c1,0,79,0,grasp,14.9,10.311,22.48,reach
+b1_standin_llm,c1,0,80,0,grasp,14.9,9.314,13.64,reach
+b1_standin_llm,c1,0,81,0,grasp,14.9,9.217,38.03,reach
+b1_standin_llm,c1,0,82,0,transport,14.9,4.065,9.88,reach > pick-lift > place-down
+b1_standin_llm,c1,0,83,0,grasp,14.9,9.751,0.56,reach
+b1_standin_llm,c1,0,84,0,reach,14.9,7.943,43.54,reach
+b1_standin_llm,c1,0,85,0,grasp,14.9,9.606,0.52,reach
+b1_standin_llm,c1,0,86,0,transport,14.9,3.417,29.73,reach > pick-lift > place-down
+b1_standin_llm,c1,0,87,0,grasp,14.9,9.102,12.18,reach
+b1_standin_llm,c1,0,88,0,transport,14.9,3.347,47.97,reach > pick-lift > place-down
+b1_standin_llm,c1,0,89,0,transport,14.9,3.467,2.54,reach > pick-lift > place-down
+b1_standin_llm,c1,0,90,0,transport,14.9,3.796,3.31,reach > pick-lift > place-down
+b1_standin_llm,c1,0,91,0,grasp,14.9,8.676,3.0,reach
+b1_standin_llm,c1,0,92,0,transport,14.9,4.467,24.62,reach > pick-lift > place-down
+b1_standin_llm,c1,0,93,0,grasp,14.9,8.438,5.34,reach
+b1_standin_llm,c1,0,94,0,grasp,14.9,9.887,12.94,reach
+b1_standin_llm,c1,0,95,0,grasp,14.9,9.504,25.55,reach
+b1_standin_llm,c1,0,96,0,grasp,14.9,9.077,0.53,reach
+b1_standin_llm,c1,0,97,0,reach,14.9,9.081,33.13,reach
+b1_standin_llm,c1,0,98,0,reach,14.9,8.787,13.92,reach
+b1_standin_llm,c1,0,99,0,transport,14.9,4.654,55.23,reach > pick-lift > place-down

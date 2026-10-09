@@ -1,0 +1,101 @@
+model,task,seed,state,success,failure_stage,time,jerk,peak_force,skills
+b1_standin_llm,c3,0,0,0,push,24.9,5.165,19.26,push > reach > pick-lift
+b1_standin_llm,c3,0,1,0,push,24.9,6.415,0.54,push
+b1_standin_llm,c3,0,2,0,push,24.9,7.162,27.83,push > reach
+b1_standin_llm,c3,0,3,0,push,24.9,7.381,24.01,push
+b1_standin_llm,c3,0,4,0,push,24.9,5.73,59.96,push > reach
+b1_standin_llm,c3,0,5,0,push,24.9,5.898,50.15,push > reach
+b1_standin_llm,c3,0,6,0,push,24.9,7.626,13.76,push
+b1_standin_llm,c3,0,7,0,push,24.9,4.04,27.22,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,8,0,push,24.9,6.396,34.44,push
+b1_standin_llm,c3,0,9,0,push,24.9,4.275,60.89,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,10,0,push,24.9,5.566,36.58,push
+b1_standin_llm,c3,0,11,0,push,24.9,5.875,60.82,push
+b1_standin_llm,c3,0,12,0,push,24.9,5.619,25.17,push
+b1_standin_llm,c3,0,13,0,push,24.9,6.831,22.74,push > reach
+b1_standin_llm,c3,0,14,0,push,24.9,5.748,34.19,push > reach
+b1_standin_llm,c3,0,15,0,push,24.9,6.971,21.59,push
+b1_standin_llm,c3,0,16,0,push,24.9,4.0,65.91,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,17,0,push,24.9,6.791,3.76,push
+b1_standin_llm,c3,0,18,0,push,24.9,6.661,23.92,push
+b1_standin_llm,c3,0,19,0,push,24.9,6.223,0.52,push
+b1_standin_llm,c3,0,20,0,push,24.9,6.059,38.47,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,21,0,push,24.9,6.342,23.52,push
+b1_standin_llm,c3,0,22,0,push,24.9,5.734,0.54,push
+b1_standin_llm,c3,0,23,0,push,24.9,6.606,55.04,push > reach
+b1_standin_llm,c3,0,24,0,push,24.9,5.618,20.93,push
+b1_standin_llm,c3,0,25,0,push,24.9,4.814,12.91,push > reach > pick-lift
+b1_standin_llm,c3,0,26,0,push,24.9,5.174,44.13,push > reach
+b1_standin_llm,c3,0,27,0,push,24.9,5.504,26.38,push
+b1_standin_llm,c3,0,28,0,push,24.9,3.397,14.88,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,29,0,push,24.9,6.097,21.78,push > reach
+b1_standin_llm,c3,0,30,0,push,24.9,8.508,19.01,push
+b1_standin_llm,c3,0,31,0,push,24.9,5.591,34.57,push > reach
+b1_standin_llm,c3,0,32,0,push,24.9,6.063,0.49,push
+b1_standin_llm,c3,0,33,0,push,24.9,6.608,5.42,push
+b1_standin_llm,c3,0,34,0,push,24.9,4.494,54.33,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,35,0,push,24.9,6.786,0.59,push
+b1_standin_llm,c3,0,36,0,push,24.9,6.68,16.61,push
+b1_standin_llm,c3,0,37,0,push,24.9,4.605,54.87,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,38,0,push,24.9,4.302,37.74,push > reach > pick-lift
+b1_standin_llm,c3,0,39,0,push,24.9,6.176,25.42,push
+b1_standin_llm,c3,0,40,0,push,24.9,6.055,36.26,push > reach
+b1_standin_llm,c3,0,41,0,push,24.9,4.498,22.05,push > reach > pick-lift
+b1_standin_llm,c3,0,42,0,push,24.9,5.904,26.83,push > reach
+b1_standin_llm,c3,0,43,0,push,24.9,5.906,21.49,push
+b1_standin_llm,c3,0,44,0,push,24.9,6.327,78.93,push > reach
+b1_standin_llm,c3,0,45,0,push,24.9,7.256,58.41,push
+b1_standin_llm,c3,0,46,0,push,24.9,6.072,22.84,push > reach
+b1_standin_llm,c3,0,47,0,push,24.9,4.317,29.08,push > reach > pick-lift
+b1_standin_llm,c3,0,48,0,push,24.9,2.977,20.26,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,49,0,push,24.9,3.975,17.27,push > reach > pick-lift
+b1_standin_llm,c3,0,50,0,push,24.9,8.078,33.55,push
+b1_standin_llm,c3,0,51,0,push,24.9,7.435,2.73,push
+b1_standin_llm,c3,0,52,0,push,24.9,6.109,10.37,push
+b1_standin_llm,c3,0,53,0,push,24.9,6.547,11.96,push
+b1_standin_llm,c3,0,54,0,push,24.9,6.892,0.51,push
+b1_standin_llm,c3,0,55,0,push,24.9,6.742,6.74,push
+b1_standin_llm,c3,0,56,0,push,24.9,5.961,46.78,push > reach > pick-lift
+b1_standin_llm,c3,0,57,0,push,24.9,4.436,4.5,push
+b1_standin_llm,c3,0,58,0,push,24.9,7.858,73.55,push > reach
+b1_standin_llm,c3,0,59,0,push,24.9,6.499,37.82,push > reach
+b1_standin_llm,c3,0,60,0,push,24.9,3.773,40.13,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,61,0,push,24.9,6.697,21.46,push > reach
+b1_standin_llm,c3,0,62,0,push,24.9,4.852,21.91,push
+b1_standin_llm,c3,0,63,0,push,24.9,4.917,22.91,push
+b1_standin_llm,c3,0,64,0,push,24.9,6.325,45.77,push > reach
+b1_standin_llm,c3,0,65,0,push,24.9,3.878,61.85,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,66,0,grasp,24.9,6.866,82.43,push > reach
+b1_standin_llm,c3,0,67,0,push,24.9,6.195,0.59,push
+b1_standin_llm,c3,0,68,0,push,24.9,5.127,71.64,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,69,0,push,24.9,6.003,1.24,push
+b1_standin_llm,c3,0,70,0,push,24.9,6.264,52.66,push > reach
+b1_standin_llm,c3,0,71,0,push,24.9,3.892,0.49,push
+b1_standin_llm,c3,0,72,0,push,24.9,4.925,38.74,push > reach > pick-lift
+b1_standin_llm,c3,0,73,0,push,24.9,7.159,17.4,push
+b1_standin_llm,c3,0,74,0,push,24.9,6.612,47.0,push > reach
+b1_standin_llm,c3,0,75,0,push,24.9,6.223,14.8,push
+b1_standin_llm,c3,0,76,0,push,24.9,6.784,14.74,push
+b1_standin_llm,c3,0,77,0,push,24.9,5.132,22.94,push > reach > pick-lift
+b1_standin_llm,c3,0,78,0,push,24.9,3.183,51.83,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,79,0,push,24.9,4.898,6.63,push
+b1_standin_llm,c3,0,80,0,push,24.9,6.675,2.7,push
+b1_standin_llm,c3,0,81,0,push,24.9,6.072,23.17,push
+b1_standin_llm,c3,0,82,0,push,24.9,6.841,51.07,push
+b1_standin_llm,c3,0,83,0,push,24.9,6.997,48.44,push
+b1_standin_llm,c3,0,84,0,push,24.9,5.842,34.92,push > reach > pick-lift
+b1_standin_llm,c3,0,85,0,push,24.9,3.673,29.07,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,86,0,push,24.9,6.576,22.5,push
+b1_standin_llm,c3,0,87,0,push,24.9,6.337,9.19,push
+b1_standin_llm,c3,0,88,0,push,24.9,4.086,59.37,push > reach > pick-lift > place-down
+b1_standin_llm,c3,0,89,0,push,24.9,5.444,14.24,push > reach > pick-lift
+b1_standin_llm,c3,0,90,0,push,24.9,6.524,5.61,push
+b1_standin_llm,c3,0,91,0,push,24.9,6.198,8.31,push
+b1_standin_llm,c3,0,92,0,push,24.9,7.116,35.47,push > reach
+b1_standin_llm,c3,0,93,0,push,24.9,6.621,28.5,push > reach
+b1_standin_llm,c3,0,94,0,push,24.9,5.729,0.51,push
+b1_standin_llm,c3,0,95,0,push,24.9,6.757,82.14,push > reach
+b1_standin_llm,c3,0,96,0,push,24.9,6.296,62.19,push
+b1_standin_llm,c3,0,97,0,push,24.9,5.679,42.58,push > reach
+b1_standin_llm,c3,0,98,0,push,24.9,5.791,0.54,push
+b1_standin_llm,c3,0,99,0,push,24.9,5.673,39.85,push > reach

@@ -2,6 +2,7 @@
 
 Frames are the front and wrist views side by side, with an optional caption bar.
 """
+import textwrap
 from pathlib import Path
 
 import cv2
@@ -24,15 +25,24 @@ class Recorder:
             wrist = obs["wrist"][i].cpu().numpy()
             rows.append(np.concatenate([front, wrist], axis=1))
         img = np.ascontiguousarray(np.concatenate(rows, axis=0)[..., :3].astype(np.uint8))
-        label = " | ".join(t for t in [self.caption, text] if t)
-        if label:
-            bar = np.full((32, img.shape[1], 3), 255, np.uint8)
-            cv2.putText(bar, label, (8, 21), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
-            img = np.concatenate([bar, img], axis=0)
-        self.frames.append(img)
+        self.frames.append((img, [self.caption] if self.caption else [], text))
 
     def save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        imageio.mimwrite(self.path, self.frames, fps=self.fps, codec="libx264", quality=8,
+        # caption bar: the caption and the per-frame text wrapped to the image width (6 Oct, user: show the whole
+        # prompt); every frame gets a bar of the same height so the video has one size
+        width = self.frames[0][0].shape[1]
+        cpl = max(20, int(width / 7.2))
+        bars = [(textwrap.wrap(" | ".join(c), cpl) if c else []) + textwrap.wrap(t, cpl)[:7] for _, c, t in self.frames]
+        rows = max(len(b) for b in bars)
+        frames = []
+        for (img, _, _), lines in zip(self.frames, bars):
+            if rows:
+                bar = np.full((8 * -(-(10 + 16 * rows) // 8), width, 3), 255, np.uint8)
+                for j, line in enumerate(lines):
+                    cv2.putText(bar, line, (8, 17 + 16 * j), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1, cv2.LINE_AA)
+                img = np.concatenate([bar, img], axis=0)
+            frames.append(img)
+        imageio.mimwrite(self.path, frames, fps=self.fps, codec="libx264", quality=8,
                          macro_block_size=8)
-        print(f"wrote {self.path} ({len(self.frames)} frames)", flush=True)
+        print(f"wrote {self.path} ({len(frames)} frames)", flush=True)

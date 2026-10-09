@@ -1,0 +1,8 @@
+file,skill,object,dest,t0,t1,flag
+Push_cube_01.mp4,push,cube,target,7.42,12.02,
+Push_cube_02.mp4,push,cube,target,25.60,30.60,trimmed to 5 s (user)
+Push_cube_04.mp4,push,cube,target,50.46,54.08,
+Push_cube_05.mp4,push,cube,target,59.38,62.66,
+Push_cube_06.mp4,push,cube,target,67.72,73.12,
+Push_cube_08.mp4,push,cube,target,17.10,20.80,replacement for 03 (medium.en)
+Push_cube_09.mp4,push,cube,target,34.20,37.40,replacement for 07 (medium.en)

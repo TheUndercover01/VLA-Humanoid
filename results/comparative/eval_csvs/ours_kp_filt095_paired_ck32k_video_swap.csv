@@ -1,0 +1,9 @@
+model,chain,state,success,lenient,ordered_done,ordered,first_rise_cm,other_rise_cm,commands_done,n_commands,failed_at,knocked,time,jerk,peak_force
+ours_kp_filt095_paired_ck32k_video,swap,0,0,1,2,1,12.6,1.0,0,2,1:pick-lift,0,16.9,2.299,65.28
+ours_kp_filt095_paired_ck32k_video,swap,1,0,1,2,1,19.4,0.5,0,2,1:pick-lift,0,16.9,2.413,51.18
+ours_kp_filt095_paired_ck32k_video,swap,2,0,1,2,1,17.7,0.2,0,2,1:pick-lift,0,16.9,2.132,47.72
+ours_kp_filt095_paired_ck32k_video,swap,3,0,1,2,1,7.1,0.4,0,2,1:pick-lift,0,16.9,1.913,45.36
+ours_kp_filt095_paired_ck32k_video,swap,4,0,0,0,0,0.8,12.7,0,2,1:pick-lift,0,16.9,1.787,48.84
+ours_kp_filt095_paired_ck32k_video,swap,5,1,1,2,1,13.5,0.0,2,2,,0,7.0,3.902,17.2
+ours_kp_filt095_paired_ck32k_video,swap,6,1,1,2,1,14.0,0.0,2,2,,0,6.5,2.571,26.52
+ours_kp_filt095_paired_ck32k_video,swap,7,1,1,2,1,13.7,0.0,2,2,,0,7.8,2.766,16.58

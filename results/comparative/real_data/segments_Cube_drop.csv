@@ -1,0 +1,7 @@
+file,skill,object,dest,t0,t1,flag
+Cube_drop_01.mp4,place-down,cube,table,7.40,10.74,
+Cube_drop_02.mp4,place-down,cube,table,18.42,21.62,end +1 s (user)
+Cube_drop_03.mp4,place-down,cube,table,29.08,32.48,end +1 s (user)
+Cube_drop_05.mp4,place-down,cube,table,66.22,69.26,end +1 s (user)
+Cube_drop_06.mp4,place-down,cube,table,77.56,80.42,end +1 s (user)
+Cube_drop_07.mp4,place-down,cube,table,49.60,52.70,replacement for 04 (medium.en)

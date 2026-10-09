@@ -8,6 +8,42 @@ import torch
 
 TASKS = ["push", "lift", "c1", "c2", "c3"]
 CUBE_HALF = 0.025
+# 6 Oct (user: the real clips use a cube and a cylinder): VLA_OBJECTS=cube_cylinder makes object 0 (the "red" slot) a 5 cm cube and
+# object 1 (the "blue" slot) a cylinder, radius 3 cm (the real can is 7.6 cm wide; the Panda opens 8 cm, so 6 cm leaves room to
+# grasp), height 8 cm (the real one 8.5). Default: the two cubes of the earlier runs.
+import os  # noqa: E402
+OBJECTS = os.environ.get("VLA_OBJECTS", "red_blue")
+CYL_R, CYL_H = 0.03, 0.08
+CUBE_CYL = OBJECTS in ("cube_cylinder", "multi")        # objects 0 and 1 are a cube and a cylinder
+HALF_Z = (CUBE_HALF, CYL_H / 2 if CUBE_CYL else CUBE_HALF)
+# 8 Oct (user: "objects can be anything", many objects, same clips): VLA_OBJECTS=multi has six object types, slot k = type k (cube and
+# cylinder as before). Cuboid: half extents (x, y, z); cylinder: (radius, half height). Every horizontal extent fits the Panda's 8 cm
+# opening at any yaw (brick 6.5 x 4: 7.6 across the diagonal, tile 5.5 x 5.5: 7.8), so the hand never needs to turn to the object.
+ROSTER = [
+    ("cube", "box", (CUBE_HALF, CUBE_HALF, CUBE_HALF), (0.92, 0.92, 0.92)),
+    ("cylinder", "cyl", (CYL_R, CYL_H / 2), (0.8, 0.1, 0.1)),
+    ("brick", "box", (0.0325, 0.02, 0.02), (0.95, 0.8, 0.1)),
+    ("disc", "cyl", (0.035, 0.0125), (0.1, 0.3, 0.9)),
+    ("tile", "box", (0.0275, 0.0275, 0.0125), (0.6, 0.2, 0.8)),
+    ("pillar", "box", (0.02, 0.02, 0.04), (0.1, 0.7, 0.3)),
+]
+N_TYPES = len(ROSTER)
+ROSTER_HALF_Z = [r[2][2] if r[1] == "box" else r[2][1] for r in ROSTER]
+# 9 Oct (user: "simplify: 3 objects in total, 1 of them new, and 4 when the student eval goes on"): VLA_TRAIN_TYPES="0,1,3" VLA_HOLDOUT_OBJECT=4 makes
+# the VLA's data contain only the cube, the cylinder and the disc (3 on the table, always), the tile is the object it never saw (it is on the table
+# at evaluation: 4 objects). Default: all types but the pillar, the pillar is held out (the first objects run).
+HOLDOUT_OBJECT = int(os.environ.get("VLA_HOLDOUT_OBJECT", 5))   # in the teacher's training, never in the VLA's data
+_TT = os.environ.get("VLA_TRAIN_TYPES", "")
+TRAIN_TYPES = tuple(int(x) for x in _TT.split(",")) if _TT else tuple(t for t in range(N_TYPES) if t != HOLDOUT_OBJECT)
+N_ON_TABLE = int(os.environ.get("VLA_N_OBJECTS", 0))            # 0: 3 or 4 at random; otherwise exactly this many in a training scene
+NO_PUSH = (5,)                                          # the pillar topples
+STACK_BASES = (0, 1, 3, 4)                              # cube, cylinder, disc, tile have a flat top wide enough to stack on
+# (top, base) pairs the VLA never sees together (the teacher does): brick on disc, cylinder on tile, disc on cube
+HOLDOUT_PAIRS = () if _TT else ((2, 3), (1, 4), (3, 0))
+# 6 Oct night (user: "fix the target, it is easier to learn"): VLA_FIXED_TARGET="x,y" puts the target pad at one table-frame position in every
+# layout and every episode (the real clips have one target marker), training and evaluation alike. Default: random, as before.
+_FT = os.environ.get("VLA_FIXED_TARGET", "")
+FIXED_TARGET = tuple(float(v) for v in _FT.split(",")) if _FT else None   # centre height of each object resting on the table
 STAGES = {
     "push": ["reach", "push"],
     "lift": ["reach", "grasp", "lift"],
@@ -46,7 +82,9 @@ def sample_layouts(task, n, gen):
         return lo + (hi - lo) * torch.rand(n, k, 2, generator=gen)
 
     red, blue, tgt = uni(lo, hi), uni(lo, hi), uni(lo, hi)
-    if task == "push":                  # push target further out than the cube
+    if FIXED_TARGET:
+        tgt = torch.tensor(FIXED_TARGET, dtype=torch.float32).expand(n, k, 2).clone()
+    if task == "push" and not FIXED_TARGET:   # push target further out than the cube
         red = uni(torch.tensor(PUSH_RED_REGION[0]), torch.tensor(PUSH_RED_REGION[1]))
         tgt = red + uni(torch.tensor([0.08, -0.08]), torch.tensor([0.15, 0.08]))
 
@@ -55,8 +93,12 @@ def sample_layouts(task, n, gen):
 
     box_lo, box_hi = torch.tensor(TARGET_BOX[0]), torch.tensor(TARGET_BOX[1])
     ok = far(red, blue) & far(red, tgt) & ((tgt > box_lo) & (tgt < box_hi)).all(-1)
-    if task != "push":
+    if task != "push" or FIXED_TARGET:
         ok &= far(blue, tgt)
+    if task == "push" and FIXED_TARGET:     # red is pushed: the gripper must get behind it
+        u = (tgt - red) / (tgt - red).norm(dim=-1, keepdim=True)
+        r = (red - 0.075 * u - torch.tensor(BASE_XY)).norm(dim=-1)
+        ok &= (r > PUSH_REACH[0]) & (r < PUSH_REACH[1])
     if task == "c3":
         # the gripper must be able to get behind blue (7.5 cm back along the push line)
         u = (tgt - blue) / (tgt - blue).norm(dim=-1, keepdim=True)
@@ -71,7 +113,7 @@ def sample_layouts(task, n, gen):
 def goal(task, s):
     """Where the red cube's centre should end up."""
     if task in ("c2", "c3"):
-        return s["blue"] + torch.tensor([0.0, 0.0, 2 * CUBE_HALF], device=s["blue"].device)
+        return s["blue"] + torch.tensor([0.0, 0.0, HALF_Z[0] + HALF_Z[1]], device=s["blue"].device)
     g = s["target"].clone()
     g[:, 2] = CUBE_HALF
     return g

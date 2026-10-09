@@ -7,6 +7,7 @@ front/wrist images go to whatever camera names the policy was trained with.
 
 The two sides run in different Python/numpy versions, so requests carry raw bytes:
   {"front", "wrist": uint8 (B, H, W, 3) bytes, "hw": (H, W), "state": float32 (B, 6) bytes, "task": [str] * B}
+  and, for a policy trained with a history frame (build_dataset --history), "front_past" -> camera3.
 and the reply is {"actions": float32 (B, chunk, 5) bytes, "shape": (B, chunk, 5)}.
 B0 is the base checkpoint with this project's state/action spec and the dataset's normalisation stats.
 """
@@ -89,12 +90,13 @@ def main():
                         break
                     h, w = msg["hw"]
                     imgs = {}
-                    for key, cam in zip(["front", "wrist"], cams):
+                    keys = ["front", "wrist"] + (["front_past"] if "front_past" in msg else [])
+                    for key, cam in zip(keys, cams + ["camera3"]):
                         a = np.frombuffer(msg[key], np.uint8).reshape(-1, h, w, 3)
                         imgs[f"observation.images.{cam}"] = torch.from_numpy(a.copy()).permute(0, 3, 1, 2).float() / 255
                     b = len(msg["task"])
                     batch = {**imgs, "observation.state": torch.from_numpy(
-                        np.frombuffer(msg["state"], np.float32).reshape(b, 6).copy()), "task": list(msg["task"])}
+                        np.frombuffer(msg["state"], np.float32).reshape(b, -1).copy()), "task": list(msg["task"])}
                     chunks = []
                     for i in range(0, b, args.max_batch):
                         part = {k: v[i:i + args.max_batch] for k, v in batch.items()}

@@ -36,6 +36,9 @@ CTRL_SUBSTEPS = 10                       # physics steps per 10 Hz control tick 
 MAX_LEAD = 0.06                          # command never runs further than this ahead of the TCP
 WS_LOW = (-0.25, -0.32, 0.015)
 WS_HIGH = (0.32, 0.32, 0.40)
+# near front view: ~1 m from the cube region (env frame x 0.38-0.68, |y| <= 0.2) instead of 1.3 m from a point near
+# the robot base, aimed 12 cm above the table so the lifted gripper stays in frame; cubes ~1.6x larger in the image
+NEAR_FRONT = ((1.20, 0.38, 0.68), (0.50, 0.0, 0.12))
 BASE_XY = (-TABLE_ORIGIN[0], 0.0)        # robot base in the table frame
 REACH = (0.32, 0.77)                     # TCP distance from the base (xy) where the gripper stays vertical
 
@@ -57,6 +60,23 @@ def _cube(name, rgba):
     )
 
 
+def _cylinder(name, rgba):
+    return RigidObjectCfg(
+        prim_path=f"/World/envs/env_.*/{name}",
+        spawn=sim_utils.CylinderCfg(
+            radius=tasks.CYL_R, height=tasks.CYL_H, axis="Z",
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(solver_position_iteration_count=16,
+                                                         max_depenetration_velocity=5.0),
+            mass_props=sim_utils.MassPropertiesCfg(mass=0.05),
+            collision_props=sim_utils.CollisionPropertiesCfg(),
+            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=1.0, dynamic_friction=1.0),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=rgba),
+            activate_contact_sensors=True,
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.8, 0.0, tasks.HALF_Z[1])),
+    )
+
+
 def _look_at(pos, target, up=(0.0, 0.0, 1.0)):
     """Quaternion (w, x, y, z) of an OpenGL camera (looks along -z, y up) at pos looking at target."""
     f = torch.tensor(target, dtype=torch.float32) - torch.tensor(pos, dtype=torch.float32)
@@ -73,6 +93,7 @@ class PandaTaskEnvCfg(DirectRLEnvCfg):
     cameras: bool = False
     terminate_on_success: bool = True     # eval: end once success has held; RL training: keep going
     image_size: int = 256
+    front_view: str = "far"               # "near" (5 Oct, user): front camera closer to the workspace, see NEAR_FRONT
     episode_s: float = 0.0                # episode length; 0 = tasks.EPISODE_S[task]
 
     episode_length_s = 15.0               # overwritten per task from tasks.EPISODE_S
@@ -92,8 +113,12 @@ class PandaTaskEnvCfg(DirectRLEnvCfg):
     # which throttles every Cartesian move to ~6 cm/s. Lower damping, same stiffness.
     robot.actuators["panda_shoulder"].damping = ARM_DAMPING
     robot.actuators["panda_forearm"].damping = ARM_DAMPING
-    red = _cube("Red", (0.9, 0.1, 0.1))
-    blue = _cube("Blue", (0.1, 0.2, 0.9))
+    if tasks.CUBE_CYL:       # object 0 a white cube, object 1 a red cylinder (the real can is red)
+        red = _cube("Red", (0.92, 0.92, 0.92))
+        blue = _cylinder("Blue", (0.8, 0.1, 0.1))
+    else:
+        red = _cube("Red", (0.9, 0.1, 0.1))
+        blue = _cube("Blue", (0.1, 0.2, 0.9))
     target = RigidObjectCfg(
         prim_path="/World/envs/env_.*/Target",
         # a 6 cm square pad: its corners are the destination keypoints of the keypoint reward
@@ -181,12 +206,14 @@ class PandaTaskEnv(DirectRLEnv):
         self.red = RigidObject(self.cfg.red)
         self.blue = RigidObject(self.cfg.blue)
         self.target = RigidObject(self.cfg.target)
+        # 8 Oct: more objects (VLA_OBJECTS=multi, sim/envs/multi_env.py) are cfg attributes obj2, obj3, ...; none in the other envs
+        self.extra = [RigidObject(getattr(self.cfg, f"obj{i}")) for i in range(2, 8) if hasattr(self.cfg, f"obj{i}")]
         self.contact = ContactSensor(self.cfg.contact)
         table = sim_utils.CuboidCfg(
             size=(1.2, 0.9, 0.75),
             collision_props=sim_utils.CollisionPropertiesCfg(),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=1.0, dynamic_friction=1.0),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.45, 0.33, 0.22)),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.04, 0.04, 0.045) if tasks.CUBE_CYL else (0.45, 0.33, 0.22)),
         )
         # table frame x in [-0.75, 0.45]: the robot is mounted on the table, top at z = 0
         table.func("/World/envs/env_0/Table", table, translation=(TABLE_ORIGIN[0] - 0.15, 0.0, -0.375))
@@ -200,10 +227,15 @@ class PandaTaskEnv(DirectRLEnv):
         self.scene.articulations["robot"] = self.robot
         for name in ["red", "blue", "target"]:
             self.scene.rigid_objects[name] = getattr(self, name)
+        for i, o in enumerate(self.extra):
+            self.scene.rigid_objects[f"obj{i + 2}"] = o
         self.scene.sensors["contact"] = self.contact
         if self.cfg.cameras:
             for name in ["front_cam", "wrist_cam"]:
                 cam_cfg = getattr(self.cfg, name).replace(width=self.cfg.image_size, height=self.cfg.image_size)
+                if name == "front_cam" and self.cfg.front_view == "near":
+                    cam_cfg = cam_cfg.replace(offset=TiledCameraCfg.OffsetCfg(
+                        pos=NEAR_FRONT[0], rot=_look_at(*NEAR_FRONT), convention="opengl"))
                 self.scene.sensors[name] = TiledCamera(cam_cfg)
 
     # ---------- state in the table frame ----------
@@ -389,7 +421,7 @@ class PandaTaskEnv(DirectRLEnv):
         self.layout[env_ids] = lay
         origin = self.table_origin[env_ids]
         unit_quat = torch.tensor([1.0, 0, 0, 0], device=self.device).repeat(k, 1)
-        for obj, xy, z in [(self.red, lay[:, 0:2], CUBE_HALF), (self.blue, lay[:, 2:4], CUBE_HALF),
+        for obj, xy, z in [(self.red, lay[:, 0:2], tasks.HALF_Z[0]), (self.blue, lay[:, 2:4], tasks.HALF_Z[1]),
                            (self.target, lay[:, 4:6], 0.001)]:
             pos = origin + torch.cat([xy, torch.full((k, 1), z, device=self.device)], dim=-1)
             obj.write_root_pose_to_sim(torch.cat([pos, unit_quat], dim=-1), env_ids=env_ids)

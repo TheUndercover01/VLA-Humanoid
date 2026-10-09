@@ -1,0 +1,101 @@
+model,task,seed,state,success,failure_stage,time,jerk,peak_force,skills
+rl_vocab_c1,c1,0,0,0,grasp,14.0,5.093,13.75,push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,1,0,lift,14.0,4.522,26.56,reach > push > reach
+rl_vocab_c1,c1,0,2,1,,10.0,7.385,124.54,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,3,1,,10.0,5.453,30.0,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,4,1,,10.0,6.09,53.39,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,5,1,,10.0,5.549,34.34,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,6,0,grasp,14.0,2.11,24.53,reach > push > reach
+rl_vocab_c1,c1,0,7,0,grasp,14.0,5.599,28.03,reach > pick-lift > push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,8,0,lift,14.0,5.045,30.21,reach > push > reach
+rl_vocab_c1,c1,0,9,0,reach,14.0,3.343,41.94,reach > pick-lift > reach
+rl_vocab_c1,c1,0,10,0,grasp,14.0,3.791,48.78,push > reach
+rl_vocab_c1,c1,0,11,0,grasp,14.0,4.034,76.2,push > reach
+rl_vocab_c1,c1,0,12,1,,8.0,4.736,26.36,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,13,0,grasp,14.0,4.142,31.43,reach > push > reach
+rl_vocab_c1,c1,0,14,0,place,14.0,4.769,26.56,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,15,0,grasp,14.0,3.416,68.55,push > reach
+rl_vocab_c1,c1,0,16,0,grasp,14.0,6.79,70.78,push > reach > pick-lift > reach > place-down > reach
+rl_vocab_c1,c1,0,17,0,grasp,14.0,3.234,82.7,push > reach
+rl_vocab_c1,c1,0,18,1,,10.0,5.762,41.91,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,19,0,lift,14.0,4.343,26.31,reach > push > reach
+rl_vocab_c1,c1,0,20,1,,8.0,6.938,34.5,reach > push > reach
+rl_vocab_c1,c1,0,21,1,,10.0,5.634,29.78,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,22,0,grasp,14.0,4.581,93.9,push > reach
+rl_vocab_c1,c1,0,23,0,grasp,14.0,5.931,18.98,push > reach > push > pick-lift > reach
+rl_vocab_c1,c1,0,24,1,,12.0,5.549,50.18,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,25,0,grasp,14.0,8.366,62.23,push > place-down > reach > place-down > reach > pick-lift > push
+rl_vocab_c1,c1,0,26,0,grasp,14.0,2.426,29.8,reach > push > reach
+rl_vocab_c1,c1,0,27,0,grasp,14.0,4.93,58.59,push > place-down > reach
+rl_vocab_c1,c1,0,28,0,grasp,14.0,2.67,33.18,push > reach
+rl_vocab_c1,c1,0,29,0,grasp,14.0,3.333,30.48,reach
+rl_vocab_c1,c1,0,30,1,,12.0,7.997,37.71,reach > push > reach
+rl_vocab_c1,c1,0,31,0,grasp,14.0,4.32,16.7,push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,32,0,reach,14.0,2.231,11.77,reach
+rl_vocab_c1,c1,0,33,0,grasp,14.0,5.917,92.43,push > reach > place-down > reach
+rl_vocab_c1,c1,0,34,0,grasp,14.0,6.863,14.11,push > place-down > push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,35,0,grasp,14.0,7.028,40.91,push > pick-lift > push > reach
+rl_vocab_c1,c1,0,36,0,grasp,14.0,4.022,66.21,push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,37,0,grasp,14.0,4.47,31.36,reach > push > reach
+rl_vocab_c1,c1,0,38,0,lift,14.0,5.958,26.45,reach > push > reach
+rl_vocab_c1,c1,0,39,0,grasp,14.0,4.454,39.72,push > reach
+rl_vocab_c1,c1,0,40,0,grasp,14.0,6.341,39.87,push > reach > pick-lift > reach > pick-lift > reach
+rl_vocab_c1,c1,0,41,0,grasp,14.0,3.702,26.41,reach
+rl_vocab_c1,c1,0,42,1,,10.0,7.809,27.43,reach > push > reach
+rl_vocab_c1,c1,0,43,1,,10.0,5.467,56.15,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,44,0,place,14.0,4.682,30.08,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,45,0,grasp,14.0,2.591,20.82,reach
+rl_vocab_c1,c1,0,46,0,grasp,14.0,4.672,24.39,push > reach
+rl_vocab_c1,c1,0,47,0,grasp,14.0,3.168,59.91,push > reach
+rl_vocab_c1,c1,0,48,0,lift,14.0,5.038,28.49,reach > push > reach
+rl_vocab_c1,c1,0,49,0,lift,14.0,4.232,27.18,reach > push > reach > push
+rl_vocab_c1,c1,0,50,0,grasp,14.0,4.119,71.47,push > reach
+rl_vocab_c1,c1,0,51,0,grasp,14.0,2.233,26.11,reach > push > reach
+rl_vocab_c1,c1,0,52,0,grasp,14.0,5.115,90.47,push > reach
+rl_vocab_c1,c1,0,53,0,grasp,14.0,2.77,51.93,push > reach
+rl_vocab_c1,c1,0,54,0,grasp,14.0,3.478,102.47,push > reach > pick-lift
+rl_vocab_c1,c1,0,55,0,lift,14.0,4.036,30.73,reach > push > reach
+rl_vocab_c1,c1,0,56,0,grasp,14.0,3.356,70.85,push > reach
+rl_vocab_c1,c1,0,57,0,grasp,14.0,5.451,45.9,reach > push > pick-lift > reach > pick-lift
+rl_vocab_c1,c1,0,58,0,grasp,14.0,3.886,29.29,reach > push > reach
+rl_vocab_c1,c1,0,59,0,grasp,14.0,3.481,56.67,push > reach
+rl_vocab_c1,c1,0,60,0,grasp,14.0,4.645,28.72,reach > push > reach
+rl_vocab_c1,c1,0,61,0,grasp,14.0,4.456,41.82,push > reach
+rl_vocab_c1,c1,0,62,0,place,14.0,4.542,61.57,push > reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,63,1,,8.0,4.504,43.07,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,64,0,lift,14.0,6.662,34.45,reach > push > reach
+rl_vocab_c1,c1,0,65,0,grasp,14.0,5.366,40.59,push > place-down > reach
+rl_vocab_c1,c1,0,66,0,grasp,14.0,4.372,10.04,push > reach
+rl_vocab_c1,c1,0,67,0,grasp,14.0,5.65,24.01,push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,68,0,grasp,14.0,3.306,60.15,push > reach
+rl_vocab_c1,c1,0,69,1,,10.0,4.97,27.74,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,70,1,,10.0,4.808,54.85,reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,71,1,,8.0,7.943,33.85,reach > push > reach
+rl_vocab_c1,c1,0,72,0,lift,14.0,3.94,27.41,reach > push > reach
+rl_vocab_c1,c1,0,73,0,lift,14.0,6.068,36.48,reach > push > reach
+rl_vocab_c1,c1,0,74,0,lift,14.0,4.228,23.86,reach > push > reach
+rl_vocab_c1,c1,0,75,0,place,14.0,6.18,48.38,reach > pick-lift > push > pick-lift > push
+rl_vocab_c1,c1,0,76,0,grasp,14.0,7.361,45.34,reach > pick-lift > push > reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,77,0,lift,14.0,5.075,39.78,reach > push > reach
+rl_vocab_c1,c1,0,78,0,grasp,14.0,7.215,80.77,push > place-down > push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,79,0,grasp,14.0,5.377,16.27,reach > push > place-down > reach > pick-lift > push
+rl_vocab_c1,c1,0,80,0,grasp,14.0,3.526,87.66,push > reach
+rl_vocab_c1,c1,0,81,1,,8.0,7.481,29.1,reach > push > reach
+rl_vocab_c1,c1,0,82,0,grasp,14.0,3.35,48.14,reach
+rl_vocab_c1,c1,0,83,0,grasp,14.0,4.578,57.48,push > reach > pick-lift > push > reach
+rl_vocab_c1,c1,0,84,0,lift,14.0,5.105,38.42,reach > push > reach
+rl_vocab_c1,c1,0,85,0,grasp,14.0,2.859,23.71,push > reach
+rl_vocab_c1,c1,0,86,0,grasp,14.0,4.221,84.31,push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,87,0,grasp,14.0,3.69,30.47,reach > push > reach
+rl_vocab_c1,c1,0,88,0,grasp,14.0,3.797,25.53,reach > push > reach
+rl_vocab_c1,c1,0,89,0,lift,14.0,4.893,30.02,reach > push > reach
+rl_vocab_c1,c1,0,90,0,grasp,14.0,3.748,82.9,push > reach
+rl_vocab_c1,c1,0,91,0,grasp,14.0,5.785,50.87,push > reach
+rl_vocab_c1,c1,0,92,0,lift,14.0,3.348,24.89,reach > push > reach
+rl_vocab_c1,c1,0,93,0,lift,14.0,4.035,33.18,reach > push > reach
+rl_vocab_c1,c1,0,94,0,grasp,14.0,4.271,28.8,reach > pick-lift > reach > push > reach
+rl_vocab_c1,c1,0,95,0,grasp,14.0,4.925,34.59,reach > place-down > pick-lift > push > reach
+rl_vocab_c1,c1,0,96,0,grasp,14.0,4.228,46.18,push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,97,0,grasp,14.0,3.124,37.23,reach
+rl_vocab_c1,c1,0,98,0,grasp,14.0,5.486,62.78,push > reach > pick-lift > reach
+rl_vocab_c1,c1,0,99,1,,12.0,5.863,61.12,reach > pick-lift > push > reach

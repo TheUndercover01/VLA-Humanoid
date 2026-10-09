@@ -1,0 +1,101 @@
+model,task,seed,state,success,failure_stage,time,jerk,peak_force,skills
+scripted,c3,0,0,1,,11.4,5.886,43.09,reach > push > reach > pick-lift > place-down
+scripted,c3,0,1,1,,12.8,5.563,43.59,reach > push > reach > pick-lift > place-down
+scripted,c3,0,2,1,,9.2,5.703,25.99,reach > push > reach > pick-lift > place-down
+scripted,c3,0,3,1,,12.4,5.431,48.37,reach > push > reach > pick-lift > place-down
+scripted,c3,0,4,1,,8.5,6.546,5.64,reach > push > reach > pick-lift > place-down
+scripted,c3,0,5,1,,11.1,5.208,18.84,reach > push > reach > pick-lift > place-down
+scripted,c3,0,6,1,,12.8,5.352,12.69,reach > push > reach > pick-lift > place-down
+scripted,c3,0,7,1,,10.9,6.013,14.43,reach > push > reach > pick-lift > place-down
+scripted,c3,0,8,1,,10.6,5.078,9.89,reach > push > reach > pick-lift > place-down
+scripted,c3,0,9,1,,11.6,5.991,8.56,reach > push > reach > pick-lift > place-down
+scripted,c3,0,10,1,,11.1,5.609,45.16,reach > push > reach > pick-lift > place-down
+scripted,c3,0,11,1,,10.6,5.592,7.61,reach > push > reach > pick-lift > place-down
+scripted,c3,0,12,1,,9.7,5.493,11.6,reach > push > reach > pick-lift > place-down
+scripted,c3,0,13,1,,11.8,5.849,24.99,reach > push > reach > pick-lift > place-down
+scripted,c3,0,14,1,,10.9,5.206,61.45,reach > push > reach > pick-lift > place-down
+scripted,c3,0,15,1,,7.8,7.201,6.12,reach > push > reach > pick-lift > place-down
+scripted,c3,0,16,1,,9.4,6.39,9.95,reach > push > reach > pick-lift > place-down
+scripted,c3,0,17,1,,11.6,5.632,11.39,reach > push > reach > pick-lift > place-down
+scripted,c3,0,18,1,,13.6,5.486,45.38,reach > push > reach > pick-lift > place-down
+scripted,c3,0,19,1,,12.5,6.062,50.2,reach > push > reach > pick-lift > place-down
+scripted,c3,0,20,1,,8.1,7.087,8.75,reach > push > reach > pick-lift > place-down
+scripted,c3,0,21,0,grasp,24.9,2.042,29.84,reach > push > reach > pick-lift
+scripted,c3,0,22,0,place,24.9,2.359,40.75,reach > push > reach > pick-lift > place-down > reach
+scripted,c3,0,23,1,,10.9,6.485,11.22,reach > push > reach > pick-lift > place-down
+scripted,c3,0,24,1,,10.8,5.715,5.98,reach > push > reach > pick-lift > place-down
+scripted,c3,0,25,1,,11.4,5.937,1.41,reach > push > reach > pick-lift > place-down
+scripted,c3,0,26,1,,7.3,6.64,14.03,reach > push > reach > pick-lift > place-down
+scripted,c3,0,27,1,,13.3,4.815,40.1,reach > push > reach > pick-lift > place-down
+scripted,c3,0,28,1,,10.5,6.07,24.61,reach > push > reach > pick-lift > place-down
+scripted,c3,0,29,1,,9.7,6.046,43.74,reach > push > reach > pick-lift > place-down
+scripted,c3,0,30,1,,11.1,6.057,16.47,reach > push > reach > pick-lift > place-down
+scripted,c3,0,31,1,,10.3,5.505,6.6,reach > push > reach > pick-lift > place-down
+scripted,c3,0,32,1,,9.8,5.95,22.62,reach > push > reach > pick-lift > place-down
+scripted,c3,0,33,1,,11.0,6.655,52.99,reach > push > reach > pick-lift > place-down
+scripted,c3,0,34,1,,11.2,5.412,9.83,reach > push > reach > pick-lift > place-down
+scripted,c3,0,35,1,,10.3,6.53,9.36,reach > push > reach > pick-lift > place-down
+scripted,c3,0,36,1,,11.7,5.864,32.67,reach > push > reach > pick-lift > place-down
+scripted,c3,0,37,1,,10.2,5.737,46.44,reach > push > reach > pick-lift > place-down
+scripted,c3,0,38,1,,8.7,5.978,4.93,reach > push > reach > pick-lift > place-down
+scripted,c3,0,39,1,,8.2,6.408,23.97,reach > push > reach > pick-lift > place-down
+scripted,c3,0,40,1,,10.7,5.454,16.2,reach > push > reach > pick-lift > place-down
+scripted,c3,0,41,1,,9.9,5.554,27.72,reach > push > reach > pick-lift > place-down
+scripted,c3,0,42,1,,10.5,5.899,9.96,reach > push > reach > pick-lift > place-down
+scripted,c3,0,43,1,,11.5,6.092,41.12,reach > push > reach > pick-lift > place-down
+scripted,c3,0,44,1,,10.7,5.36,6.23,reach > push > reach > pick-lift > place-down
+scripted,c3,0,45,1,,10.5,4.814,60.51,reach > push > reach > pick-lift > place-down
+scripted,c3,0,46,1,,10.1,5.668,13.1,reach > push > reach > pick-lift > place-down
+scripted,c3,0,47,0,reach,24.9,0.883,3.93,reach > push
+scripted,c3,0,48,1,,12.1,6.117,23.73,reach > push > reach > pick-lift > place-down
+scripted,c3,0,49,1,,8.2,7.717,17.9,reach > push > reach > pick-lift > place-down
+scripted,c3,0,50,1,,9.9,4.415,7.34,reach > push > reach > pick-lift > place-down
+scripted,c3,0,51,1,,11.8,6.101,71.06,reach > push > reach > pick-lift > place-down
+scripted,c3,0,52,1,,11.7,5.498,6.56,reach > push > reach > pick-lift > place-down
+scripted,c3,0,53,1,,11.4,5.448,27.78,reach > push > reach > pick-lift > place-down
+scripted,c3,0,54,1,,8.8,6.323,21.4,reach > push > reach > pick-lift > place-down
+scripted,c3,0,55,1,,10.2,6.221,30.61,reach > push > reach > pick-lift > place-down
+scripted,c3,0,56,1,,11.2,6.559,45.93,reach > push > reach > pick-lift > place-down
+scripted,c3,0,57,1,,10.8,5.474,13.86,reach > push > reach > pick-lift > place-down
+scripted,c3,0,58,1,,9.6,5.493,20.84,reach > push > reach > pick-lift > place-down
+scripted,c3,0,59,1,,10.1,5.727,37.36,reach > push > reach > pick-lift > place-down
+scripted,c3,0,60,1,,11.7,5.181,49.39,reach > push > reach > pick-lift > place-down
+scripted,c3,0,61,1,,7.5,7.114,15.08,reach > push > reach > pick-lift > place-down
+scripted,c3,0,62,1,,11.0,5.84,12.89,reach > push > reach > pick-lift > place-down
+scripted,c3,0,63,0,push,24.9,19.346,2.66,reach > push
+scripted,c3,0,64,1,,7.6,6.795,6.62,reach > push > reach > pick-lift > place-down
+scripted,c3,0,65,1,,9.2,6.172,24.57,reach > push > reach > pick-lift > place-down
+scripted,c3,0,66,1,,9.8,6.476,12.72,reach > push > reach > pick-lift > place-down
+scripted,c3,0,67,1,,9.8,6.486,12.64,reach > push > reach > pick-lift > place-down
+scripted,c3,0,68,1,,11.8,5.459,12.42,reach > push > reach > pick-lift > place-down
+scripted,c3,0,69,1,,9.8,6.221,27.93,reach > push > reach > pick-lift > place-down
+scripted,c3,0,70,1,,8.6,6.334,2.15,reach > push > reach > pick-lift > place-down
+scripted,c3,0,71,1,,8.2,6.32,13.23,reach > push > reach > pick-lift > place-down > reach
+scripted,c3,0,72,1,,11.4,5.652,16.13,reach > push > reach > pick-lift > place-down
+scripted,c3,0,73,1,,11.9,5.984,37.97,reach > push > reach > pick-lift > place-down
+scripted,c3,0,74,1,,12.6,5.55,21.03,reach > push > reach > pick-lift > place-down
+scripted,c3,0,75,1,,9.1,6.356,15.64,reach > push > reach > pick-lift > place-down
+scripted,c3,0,76,1,,10.9,6.005,5.8,reach > push > reach > pick-lift > place-down
+scripted,c3,0,77,1,,12.7,5.582,28.16,reach > push > reach > pick-lift > place-down
+scripted,c3,0,78,1,,12.6,4.985,49.52,reach > push > reach > pick-lift > place-down
+scripted,c3,0,79,1,,8.2,6.109,16.94,reach > push > reach > pick-lift > place-down
+scripted,c3,0,80,0,reach,24.9,7.804,10.11,reach > push
+scripted,c3,0,81,1,,9.8,5.654,9.33,reach > push > reach > pick-lift > place-down
+scripted,c3,0,82,1,,10.5,5.689,6.93,reach > push > reach > pick-lift > place-down
+scripted,c3,0,83,1,,11.6,6.057,24.95,reach > push > reach > pick-lift > place-down
+scripted,c3,0,84,0,place,24.9,2.759,19.26,reach > push > reach > pick-lift > place-down > reach
+scripted,c3,0,85,1,,11.0,5.507,12.95,reach > push > reach > pick-lift > place-down
+scripted,c3,0,86,0,push,24.9,6.213,7.85,reach > push
+scripted,c3,0,87,1,,12.3,4.908,31.1,reach > push > reach > pick-lift > place-down
+scripted,c3,0,88,1,,9.7,5.891,23.15,reach > push > reach > pick-lift > place-down
+scripted,c3,0,89,1,,7.8,5.973,7.34,reach > push > reach > pick-lift > place-down
+scripted,c3,0,90,1,,7.2,6.556,16.58,reach > push > reach > pick-lift > place-down
+scripted,c3,0,91,1,,11.8,5.673,16.78,reach > push > reach > pick-lift > place-down
+scripted,c3,0,92,1,,10.8,6.21,58.22,reach > push > reach > pick-lift > place-down
+scripted,c3,0,93,0,reach,24.9,8.497,14.87,reach > push
+scripted,c3,0,94,1,,10.7,5.346,7.9,reach > push > reach > pick-lift > place-down
+scripted,c3,0,95,0,reach,24.9,9.059,10.16,reach > push
+scripted,c3,0,96,1,,12.8,6.168,42.27,reach > push > reach > pick-lift > place-down
+scripted,c3,0,97,1,,11.5,4.781,17.83,reach > push > reach > pick-lift > place-down
+scripted,c3,0,98,1,,9.4,6.179,40.49,reach > push > reach > pick-lift > place-down
+scripted,c3,0,99,1,,8.7,7.033,8.64,reach > push > reach > pick-lift > place-down

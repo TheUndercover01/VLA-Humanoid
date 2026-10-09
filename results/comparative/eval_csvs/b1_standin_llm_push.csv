@@ -1,0 +1,101 @@
+model,task,seed,state,success,failure_stage,time,jerk,peak_force,skills
+b1_standin_llm,push,0,0,0,push,14.9,7.149,88.28,reach
+b1_standin_llm,push,0,1,0,push,14.9,7.613,11.31,reach
+b1_standin_llm,push,0,2,0,reach,14.9,5.076,19.78,reach
+b1_standin_llm,push,0,3,0,push,14.9,8.058,3.09,reach
+b1_standin_llm,push,0,4,0,push,14.9,8.299,1.45,reach
+b1_standin_llm,push,0,5,0,place,14.9,6.546,25.63,reach > push
+b1_standin_llm,push,0,6,0,push,14.9,8.053,3.74,reach
+b1_standin_llm,push,0,7,1,,7.2,6.92,24.1,reach > push
+b1_standin_llm,push,0,8,0,push,14.9,4.963,27.83,reach
+b1_standin_llm,push,0,9,0,push,14.9,8.285,4.12,reach
+b1_standin_llm,push,0,10,0,reach,14.9,7.689,0.51,reach
+b1_standin_llm,push,0,11,0,push,14.9,8.114,0.51,reach
+b1_standin_llm,push,0,12,0,place,14.9,7.93,34.53,reach > push
+b1_standin_llm,push,0,13,0,place,14.9,6.945,22.63,reach > push
+b1_standin_llm,push,0,14,0,push,14.9,9.218,1.35,reach
+b1_standin_llm,push,0,15,0,push,14.9,9.36,6.61,reach
+b1_standin_llm,push,0,16,0,push,14.9,8.795,1.07,reach
+b1_standin_llm,push,0,17,0,push,14.9,6.83,30.23,reach
+b1_standin_llm,push,0,18,0,push,14.9,7.551,2.96,reach
+b1_standin_llm,push,0,19,0,place,14.9,6.108,22.09,reach > push
+b1_standin_llm,push,0,20,0,push,14.9,7.478,0.97,reach
+b1_standin_llm,push,0,21,0,reach,14.9,7.104,0.51,reach
+b1_standin_llm,push,0,22,0,push,14.9,7.965,9.59,reach
+b1_standin_llm,push,0,23,0,place,14.9,6.788,35.1,reach > push
+b1_standin_llm,push,0,24,0,push,14.9,8.381,21.63,reach
+b1_standin_llm,push,0,25,0,reach,14.9,6.674,14.83,reach
+b1_standin_llm,push,0,26,0,push,14.9,4.51,13.8,reach
+b1_standin_llm,push,0,27,0,push,14.9,6.195,67.46,reach
+b1_standin_llm,push,0,28,0,place,14.9,5.336,22.62,reach > push
+b1_standin_llm,push,0,29,0,push,14.9,7.464,7.8,reach
+b1_standin_llm,push,0,30,0,reach,14.9,8.524,3.6,reach
+b1_standin_llm,push,0,31,0,place,14.9,6.343,29.07,reach > push
+b1_standin_llm,push,0,32,0,push,14.9,8.43,37.33,reach
+b1_standin_llm,push,0,33,0,reach,14.9,8.051,0.51,reach
+b1_standin_llm,push,0,34,0,push,14.9,8.173,4.78,reach
+b1_standin_llm,push,0,35,0,push,14.9,6.574,4.45,reach
+b1_standin_llm,push,0,36,0,push,14.9,7.641,65.1,reach
+b1_standin_llm,push,0,37,0,reach,14.9,7.383,6.12,reach
+b1_standin_llm,push,0,38,0,reach,14.9,7.835,0.54,reach
+b1_standin_llm,push,0,39,0,place,14.9,6.468,29.46,reach > push
+b1_standin_llm,push,0,40,0,push,14.9,8.44,35.18,reach
+b1_standin_llm,push,0,41,0,place,14.9,6.728,16.49,reach > push
+b1_standin_llm,push,0,42,0,push,14.9,7.794,6.83,reach
+b1_standin_llm,push,0,43,0,push,14.9,8.392,0.49,reach
+b1_standin_llm,push,0,44,0,push,14.9,7.774,4.54,reach
+b1_standin_llm,push,0,45,0,reach,14.9,7.777,10.18,reach
+b1_standin_llm,push,0,46,0,place,14.9,5.976,24.41,reach > push
+b1_standin_llm,push,0,47,0,place,14.9,5.737,28.78,reach > push
+b1_standin_llm,push,0,48,0,reach,14.9,7.842,29.13,reach
+b1_standin_llm,push,0,49,0,reach,14.9,8.006,0.52,reach
+b1_standin_llm,push,0,50,0,push,14.9,6.229,14.01,reach
+b1_standin_llm,push,0,51,0,reach,14.9,7.587,62.54,reach
+b1_standin_llm,push,0,52,1,,6.4,6.873,35.84,reach > push
+b1_standin_llm,push,0,53,0,push,14.9,7.997,7.28,reach
+b1_standin_llm,push,0,54,0,place,14.9,6.54,29.87,reach > push
+b1_standin_llm,push,0,55,0,place,14.9,4.965,28.0,reach > push
+b1_standin_llm,push,0,56,1,,6.1,4.957,29.89,reach > push
+b1_standin_llm,push,0,57,0,place,14.9,7.662,39.35,reach
+b1_standin_llm,push,0,58,0,reach,14.9,8.047,2.2,reach
+b1_standin_llm,push,0,59,0,push,14.9,7.09,13.42,reach
+b1_standin_llm,push,0,60,0,reach,14.9,6.675,6.3,reach
+b1_standin_llm,push,0,61,0,push,14.9,8.403,5.17,reach
+b1_standin_llm,push,0,62,0,push,14.9,8.311,6.72,reach
+b1_standin_llm,push,0,63,0,reach,14.9,8.452,0.51,reach
+b1_standin_llm,push,0,64,0,push,14.9,8.263,13.16,reach
+b1_standin_llm,push,0,65,0,push,14.9,7.937,26.18,reach
+b1_standin_llm,push,0,66,0,push,14.9,7.338,54.48,reach
+b1_standin_llm,push,0,67,0,place,14.9,6.675,15.37,reach > push
+b1_standin_llm,push,0,68,0,place,14.9,6.598,57.59,reach > push
+b1_standin_llm,push,0,69,0,push,14.9,7.957,4.6,reach
+b1_standin_llm,push,0,70,0,place,14.9,6.351,20.95,reach > push
+b1_standin_llm,push,0,71,0,reach,14.9,5.824,18.99,reach
+b1_standin_llm,push,0,72,0,place,14.9,5.558,25.47,reach > push
+b1_standin_llm,push,0,73,0,push,14.9,6.202,18.64,reach
+b1_standin_llm,push,0,74,0,push,14.9,7.514,6.63,reach
+b1_standin_llm,push,0,75,0,push,14.9,5.633,17.85,reach
+b1_standin_llm,push,0,76,0,place,14.9,6.233,18.89,reach > push
+b1_standin_llm,push,0,77,0,push,14.9,7.693,21.77,reach
+b1_standin_llm,push,0,78,0,place,14.9,6.448,21.84,reach > push
+b1_standin_llm,push,0,79,0,push,14.9,8.164,18.26,reach
+b1_standin_llm,push,0,80,0,push,14.9,8.708,15.12,reach
+b1_standin_llm,push,0,81,0,reach,14.9,6.394,19.16,reach
+b1_standin_llm,push,0,82,0,push,14.9,6.063,16.61,reach
+b1_standin_llm,push,0,83,0,place,14.9,6.256,16.01,reach > push
+b1_standin_llm,push,0,84,0,reach,14.9,6.235,51.48,reach
+b1_standin_llm,push,0,85,0,reach,14.9,7.928,0.51,reach
+b1_standin_llm,push,0,86,0,reach,14.9,8.559,0.55,reach
+b1_standin_llm,push,0,87,0,place,14.9,6.342,32.24,reach > push
+b1_standin_llm,push,0,88,0,reach,14.9,6.749,21.17,reach
+b1_standin_llm,push,0,89,0,push,14.9,6.071,18.56,reach
+b1_standin_llm,push,0,90,0,reach,14.9,7.353,0.49,reach
+b1_standin_llm,push,0,91,0,place,14.9,6.634,36.8,reach > push
+b1_standin_llm,push,0,92,0,place,14.9,6.331,18.87,reach > push
+b1_standin_llm,push,0,93,0,place,14.9,5.895,30.82,reach > push
+b1_standin_llm,push,0,94,0,place,14.9,7.056,30.34,reach > push
+b1_standin_llm,push,0,95,0,push,14.9,7.614,3.63,reach
+b1_standin_llm,push,0,96,0,push,14.9,7.919,0.5,reach
+b1_standin_llm,push,0,97,0,place,14.9,6.083,33.1,reach > push
+b1_standin_llm,push,0,98,0,push,14.9,5.83,12.22,reach
+b1_standin_llm,push,0,99,0,place,14.9,6.36,31.55,reach > push

@@ -1,0 +1,101 @@
+model,task,seed,state,success,failure_stage,time,jerk,peak_force,skills
+scripted,c3,0,0,1,,10.2,6.403,42.25,reach > push > reach > pick-lift > place-down
+scripted,c3,0,1,1,,10.4,6.734,49.73,reach > push > reach > pick-lift > place-down
+scripted,c3,0,2,1,,7.7,6.21,51.91,reach > push > reach > pick-lift > place-down
+scripted,c3,0,3,1,,11.3,5.659,47.16,reach > push > reach > pick-lift > place-down
+scripted,c3,0,4,1,,8.9,7.348,11.86,reach > push > reach > pick-lift > place-down
+scripted,c3,0,5,1,,8.2,5.648,50.42,reach > push > reach > pick-lift > place-down
+scripted,c3,0,6,0,reach,24.9,1.178,3.57,reach > push
+scripted,c3,0,7,1,,10.0,5.888,17.51,reach > push > reach > pick-lift > place-down
+scripted,c3,0,8,1,,9.4,5.497,5.93,reach > push > reach > pick-lift > place-down
+scripted,c3,0,9,0,place,24.9,2.803,11.99,reach > push > reach > pick-lift > place-down > reach
+scripted,c3,0,10,1,,9.5,6.234,27.48,reach > push > reach > pick-lift > place-down
+scripted,c3,0,11,1,,10.5,5.734,21.11,reach > push > reach > pick-lift > place-down
+scripted,c3,0,12,1,,10.1,6.132,18.71,reach > push > reach > pick-lift > place-down
+scripted,c3,0,13,1,,11.6,5.943,26.35,reach > push > reach > pick-lift > place-down
+scripted,c3,0,14,1,,9.6,6.248,25.41,reach > push > reach > pick-lift > place-down
+scripted,c3,0,15,1,,7.5,7.328,5.93,reach > push > reach > pick-lift > place-down
+scripted,c3,0,16,1,,9.3,6.892,12.92,reach > push > reach > pick-lift > place-down
+scripted,c3,0,17,1,,8.6,6.922,19.24,reach > push > reach > pick-lift > place-down
+scripted,c3,0,18,1,,11.9,5.516,43.26,reach > push > reach > pick-lift > place-down
+scripted,c3,0,19,1,,11.5,6.466,43.89,reach > push > reach > pick-lift > place-down
+scripted,c3,0,20,1,,8.0,7.255,8.73,reach > push > reach > pick-lift > place-down
+scripted,c3,0,21,1,,20.4,2.865,36.01,reach > push > reach > pick-lift > place-down
+scripted,c3,0,22,1,,8.8,5.211,17.69,reach > push > reach > pick-lift > place-down
+scripted,c3,0,23,1,,9.4,7.432,13.91,reach > push > reach > pick-lift > place-down
+scripted,c3,0,24,1,,9.1,6.782,5.59,reach > push > reach > pick-lift > place-down
+scripted,c3,0,25,1,,9.8,6.791,38.11,reach > push > reach > pick-lift > place-down
+scripted,c3,0,26,1,,7.3,6.758,12.16,reach > push > reach > pick-lift > place-down
+scripted,c3,0,27,1,,12.3,5.106,44.8,reach > push > reach > pick-lift > place-down
+scripted,c3,0,28,1,,9.3,6.321,37.73,reach > push > reach > pick-lift > place-down
+scripted,c3,0,29,1,,9.6,6.142,29.29,reach > push > reach > pick-lift > place-down
+scripted,c3,0,30,1,,8.8,6.73,21.49,reach > push > reach > pick-lift > place-down
+scripted,c3,0,31,1,,9.6,6.534,5.91,reach > push > reach > pick-lift > place-down
+scripted,c3,0,32,1,,9.4,6.381,19.77,reach > push > reach > pick-lift > place-down
+scripted,c3,0,33,1,,9.7,6.724,62.29,reach > push > reach > pick-lift > place-down
+scripted,c3,0,34,1,,9.5,6.113,6.68,reach > push > reach > pick-lift > place-down
+scripted,c3,0,35,1,,9.9,6.716,10.19,reach > push > reach > pick-lift > place-down
+scripted,c3,0,36,1,,9.8,6.526,26.51,reach > push > reach > pick-lift > place-down
+scripted,c3,0,37,1,,10.5,6.184,43.78,reach > push > reach > pick-lift > place-down
+scripted,c3,0,38,1,,8.4,6.271,4.67,reach > push > reach > pick-lift > place-down
+scripted,c3,0,39,1,,8.0,7.346,28.06,reach > push > reach > pick-lift > place-down
+scripted,c3,0,40,1,,10.0,5.776,17.6,reach > push > reach > pick-lift > place-down
+scripted,c3,0,41,1,,8.3,5.989,46.95,reach > push > reach > pick-lift > place-down
+scripted,c3,0,42,1,,10.0,6.368,10.57,reach > push > reach > pick-lift > place-down
+scripted,c3,0,43,1,,10.1,6.477,27.19,reach > push > reach > pick-lift > place-down
+scripted,c3,0,44,1,,10.1,6.062,7.25,reach > push > reach > pick-lift > place-down
+scripted,c3,0,45,1,,8.7,5.992,56.72,reach > push > reach > pick-lift > place-down
+scripted,c3,0,46,1,,9.8,5.931,27.2,reach > push > reach > pick-lift > place-down
+scripted,c3,0,47,0,reach,24.9,0.87,6.29,reach > push
+scripted,c3,0,48,1,,10.5,6.338,13.53,reach > push > reach > pick-lift > place-down
+scripted,c3,0,49,1,,8.1,7.931,18.64,reach > push > reach > pick-lift > place-down
+scripted,c3,0,50,1,,9.6,5.033,7.38,reach > push > reach > pick-lift > place-down
+scripted,c3,0,51,0,push,24.9,6.245,70.04,reach > push
+scripted,c3,0,52,1,,11.4,5.742,2.03,reach > push > reach > pick-lift > place-down
+scripted,c3,0,53,1,,9.8,6.255,44.38,reach > push > reach > pick-lift > place-down
+scripted,c3,0,54,1,,9.6,6.767,20.68,reach > push > reach > pick-lift > place-down
+scripted,c3,0,55,1,,9.0,7.133,47.53,reach > push > reach > pick-lift > place-down
+scripted,c3,0,56,1,,9.9,7.014,24.37,reach > push > reach > pick-lift > place-down
+scripted,c3,0,57,1,,11.1,6.14,12.13,reach > push > reach > pick-lift > place-down
+scripted,c3,0,58,1,,8.0,6.222,27.76,reach > push > reach > pick-lift > place-down
+scripted,c3,0,59,1,,10.6,5.093,7.96,reach > push > reach > pick-lift > place-down
+scripted,c3,0,60,1,,8.3,6.704,56.68,reach > push > reach > pick-lift > place-down
+scripted,c3,0,61,1,,7.3,7.368,16.81,reach > push > reach > pick-lift > place-down
+scripted,c3,0,62,1,,9.4,6.901,12.82,reach > push > reach > pick-lift > place-down
+scripted,c3,0,63,0,push,24.9,19.399,4.67,reach > push
+scripted,c3,0,64,1,,7.8,6.95,7.76,reach > push > reach > pick-lift > place-down
+scripted,c3,0,65,1,,9.6,5.748,16.65,reach > push > reach > pick-lift > place-down
+scripted,c3,0,66,1,,9.4,6.873,12.69,reach > push > reach > pick-lift > place-down
+scripted,c3,0,67,1,,9.6,7.229,43.9,reach > push > reach > pick-lift > place-down
+scripted,c3,0,68,1,,9.4,6.454,11.74,reach > push > reach > pick-lift > place-down
+scripted,c3,0,69,1,,9.4,6.439,20.76,reach > push > reach > pick-lift > place-down
+scripted,c3,0,70,1,,8.5,6.505,3.97,reach > push > reach > pick-lift > place-down
+scripted,c3,0,71,1,,8.1,6.386,11.12,reach > push > reach > pick-lift > place-down > reach
+scripted,c3,0,72,1,,10.8,6.128,18.52,reach > push > reach > pick-lift > place-down
+scripted,c3,0,73,1,,10.8,6.643,36.98,reach > push > reach > pick-lift > place-down
+scripted,c3,0,74,1,,12.4,6.031,21.06,reach > push > reach > pick-lift > place-down
+scripted,c3,0,75,0,place,24.9,2.779,12.51,reach > push > reach > pick-lift > place-down > reach
+scripted,c3,0,76,1,,10.0,6.486,10.29,reach > push > reach > pick-lift > place-down
+scripted,c3,0,77,1,,11.3,6.187,27.3,reach > push > reach > pick-lift > place-down
+scripted,c3,0,78,1,,9.7,5.54,54.5,reach > push > reach > pick-lift > place-down
+scripted,c3,0,79,1,,8.7,6.412,32.11,reach > push > reach > pick-lift > place-down
+scripted,c3,0,80,0,reach,24.9,1.138,11.54,reach > push
+scripted,c3,0,81,1,,8.5,6.444,10.68,reach > push > reach > pick-lift > place-down
+scripted,c3,0,82,1,,9.5,6.138,7.56,reach > push > reach > pick-lift > place-down
+scripted,c3,0,83,1,,9.8,6.911,26.97,reach > push > reach > pick-lift > place-down
+scripted,c3,0,84,1,,8.6,5.581,36.72,reach > push > reach > pick-lift > place-down
+scripted,c3,0,85,1,,11.4,5.744,14.82,reach > push > reach > pick-lift > place-down
+scripted,c3,0,86,0,push,24.9,6.178,105.52,reach > push
+scripted,c3,0,87,1,,11.2,5.45,40.15,reach > push > reach > pick-lift > place-down
+scripted,c3,0,88,1,,9.6,6.274,23.86,reach > push > reach > pick-lift > place-down
+scripted,c3,0,89,1,,7.7,6.935,7.34,reach > push > reach > pick-lift > place-down
+scripted,c3,0,90,1,,7.3,6.281,21.51,reach > push > reach > pick-lift > place-down
+scripted,c3,0,91,1,,9.2,6.293,40.68,reach > push > reach > pick-lift > place-down
+scripted,c3,0,92,1,,7.7,7.641,52.1,reach > push > reach > pick-lift > place-down
+scripted,c3,0,93,0,reach,24.9,8.69,22.6,reach > push
+scripted,c3,0,94,1,,9.2,6.215,23.81,reach > push > reach > pick-lift > place-down
+scripted,c3,0,95,0,reach,24.9,9.526,11.14,reach > push
+scripted,c3,0,96,1,,10.6,6.452,34.19,reach > push > reach > pick-lift > place-down
+scripted,c3,0,97,1,,11.2,5.205,21.82,reach > push > reach > pick-lift > place-down
+scripted,c3,0,98,1,,9.8,6.71,26.65,reach > push > reach > pick-lift > place-down
+scripted,c3,0,99,1,,8.5,7.685,8.43,reach > push > reach > pick-lift > place-down

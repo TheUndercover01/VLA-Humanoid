@@ -1,0 +1,11 @@
+env,tick,command,skill,ok
+4,46,0,pick-lift,1
+6,47,0,pick-lift,1
+28,47,0,pick-lift,0
+42,47,0,pick-lift,1
+47,66,0,pick-lift,1
+6,76,1,place-down,1
+36,80,0,pick-lift,1
+47,143,1,place-down,1
+36,178,1,place-down,1
+47,275,2,pick-lift,0

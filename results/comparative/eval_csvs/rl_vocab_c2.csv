@@ -1,0 +1,101 @@
+model,task,seed,state,success,failure_stage,time,jerk,peak_force,lifted,skills
+rl_vocab,c2,0,0,0,place,14.0,5.099,61.6,1,reach > pick-lift > push > pick-lift > push > pick-lift > place-down
+rl_vocab,c2,0,1,0,place,14.0,4.979,68.81,1,reach > pick-lift > push > pick-lift > push > place-down > pick-lift
+rl_vocab,c2,0,2,0,place,14.0,4.714,50.72,1,reach > pick-lift > push > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,3,0,place,14.0,4.931,47.32,1,reach > pick-lift > push > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,4,0,place,14.0,5.698,62.35,1,reach > pick-lift > push > place-down > pick-lift > push > pick-lift
+rl_vocab,c2,0,5,0,place,14.0,5.25,54.99,1,reach > pick-lift > push > pick-lift > place-down > pick-lift > place-down
+rl_vocab,c2,0,6,0,place,14.0,5.878,44.67,1,reach > pick-lift > place-down > pick-lift > push > place-down
+rl_vocab,c2,0,7,0,place,14.0,4.632,39.01,1,reach > pick-lift > push > pick-lift > push > pick-lift > reach
+rl_vocab,c2,0,8,0,place,14.0,6.062,64.76,1,reach > place-down > reach > pick-lift > push > place-down
+rl_vocab,c2,0,9,0,place,14.0,5.241,57.93,1,reach > pick-lift > push > place-down > reach > pick-lift > push
+rl_vocab,c2,0,10,0,place,14.0,5.696,48.26,1,push > reach > pick-lift > place-down > pick-lift > reach
+rl_vocab,c2,0,11,0,place,14.0,4.737,67.01,1,push > pick-lift > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,12,0,place,14.0,4.328,48.7,1,reach > pick-lift > push > pick-lift > push > pick-lift
+rl_vocab,c2,0,13,0,place,14.0,4.531,48.9,1,push > pick-lift > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,14,0,place,14.0,6.418,52.72,1,reach > place-down > pick-lift > push > pick-lift > push > place-down
+rl_vocab,c2,0,15,0,grasp,14.0,3.072,86.58,0,push > reach > pick-lift > reach
+rl_vocab,c2,0,16,0,place,14.0,4.889,83.74,1,push > reach > pick-lift > place-down > reach > pick-lift > reach
+rl_vocab,c2,0,17,0,place,14.0,5.927,44.99,1,push > reach > pick-lift > push > place-down
+rl_vocab,c2,0,18,0,place,14.0,5.43,36.53,1,reach > pick-lift > place-down > pick-lift > reach
+rl_vocab,c2,0,19,0,place,14.0,5.497,76.07,1,push > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,20,0,place,14.0,5.246,46.73,1,reach > place-down > pick-lift > push > pick-lift > push > pick-lift
+rl_vocab,c2,0,21,0,place,14.0,3.986,33.7,1,push > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,22,0,place,14.0,5.319,38.27,1,reach > place-down > pick-lift > push > pick-lift > reach
+rl_vocab,c2,0,23,0,place,14.0,5.612,46.63,1,reach > pick-lift > place-down > pick-lift > place-down > pick-lift > place-down
+rl_vocab,c2,0,24,0,place,14.0,5.52,59.4,1,reach > place-down > pick-lift > push > pick-lift > push > place-down
+rl_vocab,c2,0,25,0,place,14.0,4.872,53.2,1,reach > pick-lift > push > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,26,0,place,14.0,5.906,85.54,1,push > reach > pick-lift > place-down > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,27,0,place,14.0,5.609,74.65,1,push > pick-lift > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,28,0,place,14.0,5.975,50.66,1,reach > pick-lift > push > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,29,0,place,14.0,5.516,85.47,1,push > pick-lift > reach > pick-lift > place-down > reach
+rl_vocab,c2,0,30,0,place,14.0,4.69,65.46,1,push > reach > pick-lift > place-down > pick-lift > push
+rl_vocab,c2,0,31,0,place,14.0,4.631,51.47,1,push > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,32,0,place,14.0,4.689,71.86,1,push > pick-lift > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,33,0,place,14.0,4.96,65.4,1,push > reach > pick-lift > push > place-down > pick-lift
+rl_vocab,c2,0,34,0,place,14.0,5.402,58.09,1,reach > pick-lift > push > place-down > reach > pick-lift > push
+rl_vocab,c2,0,35,0,place,14.0,5.801,83.32,1,reach > pick-lift > push > place-down > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,36,0,place,14.0,5.873,66.49,1,reach > place-down > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,37,0,place,14.0,6.152,70.46,1,reach > place-down > pick-lift > push > place-down > pick-lift > push
+rl_vocab,c2,0,38,0,place,14.0,5.81,64.69,1,push > reach > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,39,0,place,14.0,4.814,47.3,1,reach > pick-lift > place-down > reach > pick-lift > push
+rl_vocab,c2,0,40,0,grasp,14.0,4.073,87.3,0,push > pick-lift > reach
+rl_vocab,c2,0,41,0,place,14.0,4.178,89.23,1,push > reach > pick-lift > place-down
+rl_vocab,c2,0,42,0,place,14.0,7.269,112.82,1,reach > place-down > pick-lift > push > pick-lift > place-down
+rl_vocab,c2,0,43,0,place,14.0,5.946,140.65,1,reach > place-down > pick-lift > push > pick-lift > push > pick-lift
+rl_vocab,c2,0,44,0,place,14.0,5.402,34.88,1,reach > pick-lift > push > place-down > reach
+rl_vocab,c2,0,45,0,place,14.0,4.641,65.19,1,reach > place-down > pick-lift > push > pick-lift > push > pick-lift
+rl_vocab,c2,0,46,0,place,14.0,5.094,53.87,1,push > pick-lift > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,47,0,place,14.0,4.581,70.73,1,push > reach > pick-lift > place-down > pick-lift > push
+rl_vocab,c2,0,48,0,place,14.0,4.971,89.02,1,reach > place-down > pick-lift > push > pick-lift > reach > pick-lift
+rl_vocab,c2,0,49,1,,14.0,6.12,68.27,1,reach > place-down > pick-lift > push > place-down > reach
+rl_vocab,c2,0,50,0,place,14.0,7.002,76.8,1,push > reach > pick-lift > push > place-down
+rl_vocab,c2,0,51,0,transport,14.0,4.555,19.96,1,push > reach > pick-lift > reach > pick-lift
+rl_vocab,c2,0,52,0,place,14.0,5.699,89.66,1,reach > pick-lift > push > pick-lift > push > place-down > pick-lift
+rl_vocab,c2,0,53,0,place,14.0,4.796,53.18,1,reach > pick-lift > place-down > pick-lift > push > pick-lift
+rl_vocab,c2,0,54,0,place,14.0,6.697,28.15,1,reach > place-down > pick-lift > reach > place-down
+rl_vocab,c2,0,55,0,place,14.0,4.568,75.87,1,push > pick-lift > reach > pick-lift > push > pick-lift
+rl_vocab,c2,0,56,0,place,14.0,4.8,60.97,1,reach > pick-lift > place-down > pick-lift > place-down > reach
+rl_vocab,c2,0,57,0,place,14.0,4.68,75.91,1,reach > pick-lift > place-down > reach > pick-lift > place-down
+rl_vocab,c2,0,58,0,place,14.0,5.311,66.6,1,reach > pick-lift > push > place-down > reach > pick-lift > push
+rl_vocab,c2,0,59,0,place,14.0,6.114,55.03,1,reach > pick-lift > place-down > pick-lift > place-down > pick-lift > place-down
+rl_vocab,c2,0,60,0,place,14.0,7.251,62.58,1,reach > place-down > pick-lift > push > pick-lift > place-down
+rl_vocab,c2,0,61,0,place,14.0,5.977,101.62,1,reach > pick-lift > place-down > pick-lift > place-down > pick-lift > push
+rl_vocab,c2,0,62,0,place,14.0,5.079,59.23,1,reach > pick-lift > push > place-down > pick-lift > reach
+rl_vocab,c2,0,63,0,place,14.0,5.572,36.1,1,push > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,64,0,place,14.0,5.739,93.09,1,push > reach > pick-lift > place-down > pick-lift > push > pick-lift
+rl_vocab,c2,0,65,0,place,14.0,3.38,83.0,1,push > pick-lift > reach > pick-lift > reach > pick-lift
+rl_vocab,c2,0,66,0,place,14.0,5.067,47.91,1,reach > pick-lift > place-down > pick-lift > reach > pick-lift
+rl_vocab,c2,0,67,0,place,14.0,6.65,109.41,1,push > pick-lift > reach > pick-lift > place-down > pick-lift > push
+rl_vocab,c2,0,68,0,place,14.0,5.157,55.09,1,push > pick-lift > reach > pick-lift > place-down > pick-lift > place-down
+rl_vocab,c2,0,69,0,place,14.0,5.368,44.88,1,push > reach > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,70,0,place,14.0,6.947,84.93,1,push > reach > pick-lift > place-down > pick-lift > place-down
+rl_vocab,c2,0,71,0,place,14.0,5.562,30.74,1,reach > pick-lift > push > place-down > pick-lift > place-down
+rl_vocab,c2,0,72,0,place,14.0,5.765,61.48,1,reach > pick-lift > push > pick-lift > push > place-down > pick-lift
+rl_vocab,c2,0,73,0,place,14.0,4.234,48.06,1,reach > place-down > pick-lift > push > pick-lift > push > pick-lift
+rl_vocab,c2,0,74,0,place,14.0,6.092,112.87,1,push > reach > place-down > pick-lift > place-down > pick-lift > place-down
+rl_vocab,c2,0,75,0,place,14.0,5.037,72.16,1,reach > pick-lift > push > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,76,0,place,14.0,6.032,55.55,1,push > pick-lift > reach > pick-lift > place-down > pick-lift > place-down
+rl_vocab,c2,0,77,0,place,14.0,5.012,57.63,1,reach > pick-lift > push > pick-lift > push > place-down > pick-lift
+rl_vocab,c2,0,78,0,place,14.0,4.666,67.41,1,reach > pick-lift > place-down > pick-lift > push > pick-lift
+rl_vocab,c2,0,79,0,place,14.0,4.216,61.39,1,push > reach > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,80,0,place,14.0,6.426,94.58,1,reach > place-down > pick-lift > push > pick-lift > place-down
+rl_vocab,c2,0,81,0,place,14.0,4.914,42.91,1,reach > pick-lift > push > place-down > pick-lift > place-down
+rl_vocab,c2,0,82,0,place,14.0,4.405,49.74,1,reach > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,83,0,place,14.0,5.729,81.24,1,reach > pick-lift > place-down > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,84,0,place,14.0,5.436,58.28,1,reach > place-down > pick-lift > push > place-down > pick-lift
+rl_vocab,c2,0,85,0,place,14.0,4.679,81.06,1,reach > pick-lift > push > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,86,0,place,14.0,4.867,43.58,1,push > reach > pick-lift > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,87,0,place,14.0,4.775,44.13,1,reach > pick-lift > place-down > pick-lift > push > pick-lift
+rl_vocab,c2,0,88,0,place,14.0,4.904,62.45,1,reach > pick-lift > push > place-down > pick-lift > push > pick-lift
+rl_vocab,c2,0,89,0,place,14.0,6.037,55.82,1,reach > pick-lift > place-down > pick-lift > push > pick-lift > place-down
+rl_vocab,c2,0,90,0,place,14.0,5.715,49.21,1,reach > place-down > reach > pick-lift > push > place-down > pick-lift
+rl_vocab,c2,0,91,0,place,14.0,5.437,95.12,1,push > pick-lift > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,92,0,place,14.0,6.448,87.57,1,reach > pick-lift > push > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,93,0,place,14.0,5.022,55.72,1,push > reach > pick-lift > push > pick-lift
+rl_vocab,c2,0,94,0,place,14.0,4.162,49.88,1,push > pick-lift > reach > pick-lift > place-down > pick-lift
+rl_vocab,c2,0,95,0,place,14.0,5.815,54.25,1,reach > place-down > pick-lift > push > pick-lift > push > pick-lift
+rl_vocab,c2,0,96,0,place,14.0,4.83,32.35,1,reach > pick-lift > push > pick-lift > reach
+rl_vocab,c2,0,97,0,place,14.0,5.226,32.77,1,reach > pick-lift > push > pick-lift > push > pick-lift > push
+rl_vocab,c2,0,98,0,place,14.0,5.4,30.38,1,reach > pick-lift > push > pick-lift > push > pick-lift
+rl_vocab,c2,0,99,0,place,14.0,4.838,53.96,1,push > reach > pick-lift > push

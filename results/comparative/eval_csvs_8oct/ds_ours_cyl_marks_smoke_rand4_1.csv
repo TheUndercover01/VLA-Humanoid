@@ -1,0 +1,5 @@
+model,chain,state,success,lenient,ordered_done,ordered,first_rise_cm,other_rise_cm,commands_done,n_commands,failed_at,knocked,time,jerk,peak_force
+ours_cyl_marks_ds,rand4_1,0,0,1,4,1,17.9,0.0,0,4,1:pick-lift,0,28.9,2.14,28.17
+ours_cyl_marks_ds,rand4_1,1,0,1,1,0,14.9,0.6,0,4,1:pick-lift,0,28.9,2.545,41.8
+ours_cyl_marks_ds,rand4_1,2,0,1,1,0,15.5,1.0,1,4,2:place-down,0,28.9,4.399,62.55
+ours_cyl_marks_ds,rand4_1,3,1,1,4,1,27.6,0.8,4,4,,0,21.6,3.557,25.44

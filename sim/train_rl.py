@@ -27,6 +27,9 @@ parser.add_argument("--time_cost", type=float, default=0.02, help="--task keypoi
 parser.add_argument("--knock_penalty", action="store_true", help="--task keypoints: a cube off the table costs the remaining time")
 parser.add_argument("--rest_speed", type=float, default=0.0, help="--task keypoints: at-rest speed for done (m/s; 0 = default)")
 parser.add_argument("--action_rate", type=float, default=0.0, help="--task keypoints: penalty on squared action change per step")
+parser.add_argument("--action_filter", type=float, default=0.0, help="--task keypoints: low-pass on dx..dyaw (0.7 = 0.7 x previous + 0.3 x new)")
+parser.add_argument("--save_interval", type=int, default=100, help="checkpoint every N iterations (6 Oct: 20 for the 0.95 run, whose 99% policy was lost between saves)")
+parser.add_argument("--episode_s", type=float, default=0.0, help="--task keypoints: training episode length (0 = 15 s)")
 parser.add_argument("--ref", default=None, help="skill/keypoint reference (default: the stand-in one for --task)")
 parser.add_argument("--bank", default="data/processed/state_bank_standin.npz")
 AppLauncher.add_app_launcher_args(parser)
@@ -59,7 +62,9 @@ def main():
                                       ref_path=args.ref, bank_path=args.bank, hold_fix=args.hold_fix,
                                       release=args.release, time_cost=args.time_cost,
                                       knock_penalty=args.knock_penalty, rest_speed=args.rest_speed,
-                                      action_rate=args.action_rate)
+                                      action_rate=args.action_rate, action_filter=args.action_filter)
+        if args.episode_s:
+            env_cfg.episode_s = args.episode_s
     elif skills:
         env_cfg = PandaSkillEnvCfg(task="c1", terminate_on_success=False, reward=args.skill_reward,
                                    max_chain=args.max_chain, ref_path=args.ref, bank_path=args.bank)
@@ -78,6 +83,7 @@ def main():
     ppo_cfg = VocabPPOCfg if args.action.startswith("vocab") else RawPPOCfg
     agent_cfg = ppo_cfg(max_iterations=args.max_iterations, seed=args.seed, device=env.unwrapped.device)
     agent_cfg = handle_deprecated_rsl_rl_cfg(agent_cfg, metadata.version("rsl-rl-lib"))
+    agent_cfg.save_interval = args.save_interval
     default_name = f"keypoints{'_hold' if args.hold_fix else ''}{'_v3' if args.release else ''}_chain{args.max_chain}_s{args.seed}" \
         if args.task == "keypoints" else \
         f"skills_{args.skill_reward}_chain{args.max_chain}_s{args.seed}" if skills \
@@ -93,7 +99,8 @@ def main():
          "vocab": args.vocab if args.action.startswith("vocab") else None,
          **({"skill_reward": args.skill_reward, "max_chain": args.max_chain, "ref": args.ref, "bank": args.bank,
              "hold_fix": args.hold_fix, "release": args.release, "time_cost": args.time_cost,
-             "knock_penalty": args.knock_penalty, "rest_speed": args.rest_speed, "action_rate": args.action_rate}
+             "knock_penalty": args.knock_penalty, "rest_speed": args.rest_speed, "action_rate": args.action_rate,
+             "action_filter": args.action_filter, "episode_s": args.episode_s or 15.0}
             if skills else {})}, indent=1))
     if args.resume:
         (log_dir / "resumed.txt").open("a").write(f"resumed from {args.resume}\n")

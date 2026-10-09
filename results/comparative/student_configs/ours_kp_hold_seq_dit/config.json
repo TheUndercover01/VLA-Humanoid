@@ -1,0 +1,104 @@
+{
+    "type": "multi_task_dit",
+    "n_obs_steps": 1,
+    "input_features": {
+        "observation.images.front": {
+            "type": "VISUAL",
+            "shape": [
+                3,
+                256,
+                256
+            ]
+        },
+        "observation.images.wrist": {
+            "type": "VISUAL",
+            "shape": [
+                3,
+                256,
+                256
+            ]
+        },
+        "observation.state": {
+            "type": "STATE",
+            "shape": [
+                6
+            ]
+        }
+    },
+    "output_features": {
+        "action": {
+            "type": "ACTION",
+            "shape": [
+                5
+            ]
+        }
+    },
+    "device": "cuda",
+    "dtype": null,
+    "use_amp": false,
+    "use_peft": false,
+    "push_to_hub": false,
+    "repo_id": null,
+    "private": null,
+    "tags": null,
+    "license": null,
+    "pretrained_path": null,
+    "pretrained_revision": null,
+    "horizon": 16,
+    "n_action_steps": 16,
+    "objective": "diffusion",
+    "noise_scheduler_type": "DDIM",
+    "num_train_timesteps": 100,
+    "beta_schedule": "squaredcos_cap_v2",
+    "beta_start": 0.0001,
+    "beta_end": 0.02,
+    "prediction_type": "epsilon",
+    "clip_sample": true,
+    "clip_sample_range": 1.0,
+    "num_inference_steps": 10,
+    "sigma_min": 0.0,
+    "num_integration_steps": 100,
+    "integration_method": "euler",
+    "timestep_sampling_strategy": "beta",
+    "timestep_sampling_s": 0.999,
+    "timestep_sampling_alpha": 1.5,
+    "timestep_sampling_beta": 1.0,
+    "hidden_dim": 512,
+    "num_layers": 6,
+    "num_heads": 8,
+    "dropout": 0.1,
+    "use_positional_encoding": false,
+    "timestep_embed_dim": 256,
+    "use_rope": true,
+    "rope_base": 10000.0,
+    "vision_encoder_name": "openai/clip-vit-base-patch16",
+    "use_separate_rgb_encoder_per_camera": false,
+    "vision_encoder_lr_multiplier": 0.1,
+    "image_resize_shape": null,
+    "image_crop_shape": [
+        224,
+        224
+    ],
+    "image_crop_is_random": true,
+    "text_encoder_name": "openai/clip-vit-base-patch16",
+    "tokenizer_max_length": 77,
+    "tokenizer_padding": "max_length",
+    "tokenizer_padding_side": "right",
+    "tokenizer_truncation": true,
+    "normalization_mapping": {
+        "VISUAL": "MEAN_STD",
+        "STATE": "MIN_MAX",
+        "ACTION": "MIN_MAX"
+    },
+    "optimizer_lr": 2e-05,
+    "optimizer_betas": [
+        0.95,
+        0.999
+    ],
+    "optimizer_eps": 1e-08,
+    "optimizer_weight_decay": 0.0,
+    "scheduler_name": "cosine",
+    "scheduler_warmup_steps": 0,
+    "do_mask_loss_for_padding": false,
+    "drop_n_last_frames": 0
+}
