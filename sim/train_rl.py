@@ -30,6 +30,7 @@ parser.add_argument("--action_rate", type=float, default=0.0, help="--task keypo
 parser.add_argument("--action_filter", type=float, default=0.0, help="--task keypoints: low-pass on dx..dyaw (0.7 = 0.7 x previous + 0.3 x new)")
 parser.add_argument("--save_interval", type=int, default=100, help="checkpoint every N iterations (6 Oct: 20 for the 0.95 run, whose 99% policy was lost between saves)")
 parser.add_argument("--episode_s", type=float, default=0.0, help="--task keypoints: training episode length (0 = 15 s)")
+parser.add_argument("--derived", action="store_true", help="9 Oct: per-skill rest speed and hold time from the clips (needs keypoint_ref_real_straight_v2.npz)")
 parser.add_argument("--ref", default=None, help="skill/keypoint reference (default: the stand-in one for --task)")
 parser.add_argument("--bank", default="data/processed/state_bank_standin.npz")
 AppLauncher.add_app_launcher_args(parser)
@@ -62,7 +63,8 @@ def main():
                                       ref_path=args.ref, bank_path=args.bank, hold_fix=args.hold_fix,
                                       release=args.release, time_cost=args.time_cost,
                                       knock_penalty=args.knock_penalty, rest_speed=args.rest_speed,
-                                      action_rate=args.action_rate, action_filter=args.action_filter)
+                                      action_rate=args.action_rate, action_filter=args.action_filter,
+                                      derived=args.derived)
         if args.episode_s:
             env_cfg.episode_s = args.episode_s
     elif skills:
@@ -100,7 +102,7 @@ def main():
          **({"skill_reward": args.skill_reward, "max_chain": args.max_chain, "ref": args.ref, "bank": args.bank,
              "hold_fix": args.hold_fix, "release": args.release, "time_cost": args.time_cost,
              "knock_penalty": args.knock_penalty, "rest_speed": args.rest_speed, "action_rate": args.action_rate,
-             "action_filter": args.action_filter, "episode_s": args.episode_s or 15.0}
+             "action_filter": args.action_filter, "derived": args.derived, "episode_s": args.episode_s or 15.0}
             if skills else {})}, indent=1))
     if args.resume:
         (log_dir / "resumed.txt").open("a").write(f"resumed from {args.resume}\n")

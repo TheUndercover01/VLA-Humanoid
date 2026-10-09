@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 200" width="980" role="img" aria-label="Five steps: film atomic skills, infer the reward, train an RL teacher, distill into a VLA, compose new tasks">
+<rect width="980" height="200" rx="10" fill="#f6f1e7"/>
+<rect x="184" y="102" width="35" height="3" fill="#211d19"/>
+<rect x="21" y="39" width="168" height="150" rx="6" fill="#211d19" opacity=".9"/>
+<rect x="16" y="34" width="168" height="150" rx="6" fill="#fffdf8" stroke="#211d19" stroke-width="3"/>
+<circle cx="100.0" cy="34" r="13" fill="#e8bd2a" stroke="#211d19" stroke-width="2"/>
+<text x="100.0" y="39" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="14" fill="#211d19">1</text>
+<g transform="translate(100.0 72)" fill="none" stroke="#211d19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="-7" y="-12" width="14" height="24" rx="3"/><circle cx="0" cy="-4" r="3"/><path d="M-2.5 7h5"/></g>
+<text x="100.0" y="110" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="700" font-size="14" fill="#211d19">Film atomic skills</text>
+<text x="100.0" y="132" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">Push, pick up, put down.</text>
+<text x="100.0" y="148" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">One skill per clip.</text>
+<rect x="387" y="102" width="35" height="3" fill="#211d19"/>
+<rect x="224" y="39" width="168" height="150" rx="6" fill="#211d19" opacity=".9"/>
+<rect x="219" y="34" width="168" height="150" rx="6" fill="#fffdf8" stroke="#211d19" stroke-width="3"/>
+<circle cx="303.0" cy="34" r="13" fill="#e8bd2a" stroke="#211d19" stroke-width="2"/>
+<text x="303.0" y="39" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="14" fill="#211d19">2</text>
+<g transform="translate(303.0 72)" fill="none" stroke="#211d19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle r="11"/><circle r="6"/><circle r="1.5"/></g>
+<text x="303.0" y="110" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="700" font-size="14" fill="#211d19">Infer the reward</text>
+<text x="303.0" y="132" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">Track the object in each</text>
+<text x="303.0" y="148" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">clip. Where it goes, and</text>
+<text x="303.0" y="164" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">how, is the reward.</text>
+<rect x="590" y="102" width="35" height="3" fill="#211d19"/>
+<rect x="427" y="39" width="168" height="150" rx="6" fill="#211d19" opacity=".9"/>
+<rect x="422" y="34" width="168" height="150" rx="6" fill="#fffdf8" stroke="#211d19" stroke-width="3"/>
+<circle cx="506.0" cy="34" r="13" fill="#e8bd2a" stroke="#211d19" stroke-width="2"/>
+<text x="506.0" y="39" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="14" fill="#211d19">3</text>
+<g transform="translate(506.0 72)" fill="none" stroke="#211d19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M-11 8 -4 0l5 4 9-11"/><path d="M3 -7h6v6"/></g>
+<text x="506.0" y="110" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="700" font-size="14" fill="#211d19">Train an RL teacher</text>
+<text x="506.0" y="132" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">16,384 simulated robots</text>
+<text x="506.0" y="148" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">learn every skill and</text>
+<text x="506.0" y="164" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">the handoff between them.</text>
+<rect x="793" y="102" width="35" height="3" fill="#211d19"/>
+<rect x="630" y="39" width="168" height="150" rx="6" fill="#211d19" opacity=".9"/>
+<rect x="625" y="34" width="168" height="150" rx="6" fill="#fffdf8" stroke="#211d19" stroke-width="3"/>
+<circle cx="709.0" cy="34" r="13" fill="#e8bd2a" stroke="#211d19" stroke-width="2"/>
+<text x="709.0" y="39" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="14" fill="#211d19">4</text>
+<g transform="translate(709.0 72)" fill="none" stroke="#211d19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M-12 0s4-8 12-8 12 8 12 8-4 8-12 8-12-8-12-8z"/><circle r="3.4"/></g>
+<text x="709.0" y="110" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="700" font-size="14" fill="#211d19">Distill into a VLA</text>
+<text x="709.0" y="132" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">A vision-language model</text>
+<text x="709.0" y="148" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">copies the teacher from</text>
+<text x="709.0" y="164" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#726657">images and words.</text>
+<rect x="833" y="39" width="168" height="150" rx="6" fill="#211d19" opacity=".9"/>
+<rect x="828" y="34" width="168" height="150" rx="6" fill="#e8bd2a" stroke="#211d19" stroke-width="3"/>
+<circle cx="912.0" cy="34" r="13" fill="#fffdf8" stroke="#211d19" stroke-width="2"/>
+<text x="912.0" y="39" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="800" font-size="14" fill="#211d19">5</text>
+<g transform="translate(912.0 72)" fill="none" stroke="#211d19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M-10 1 -3 8 10 -8"/></g>
+<text x="912.0" y="110" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-weight="700" font-size="14" fill="#211d19">Compose new tasks</text>
+<text x="912.0" y="132" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#211d19">One sentence, up to</text>
+<text x="912.0" y="148" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#211d19">six commands,</text>
+<text x="912.0" y="164" text-anchor="middle" font-family="Space Grotesk, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#211d19">never demonstrated.</text>
+</svg>

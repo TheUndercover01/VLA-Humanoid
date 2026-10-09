@@ -37,6 +37,7 @@ parser.add_argument("--release", action="store_true")
 parser.add_argument("--rest_speed", type=float, default=0.0)
 parser.add_argument("--action_filter", type=float, default=0.0)
 parser.add_argument("--front_view", default="far", choices=["far", "near"])
+parser.add_argument("--derived", action="store_true", help="9 Oct: per-skill rest speed and hold time from the clips (needs keypoint_ref_real_straight_v2.npz)")
 parser.add_argument("--ref", default="data/processed/keypoint_ref_real_straight.npz",
                     help="template of the env; MUST be the one the teacher was trained with (8 Oct: this script used the env default, the stand-in template)")
 parser.add_argument("--paired", action="store_true", help="fresh-layout episodes come twice: each cube commanded on the same layout")
@@ -60,7 +61,8 @@ from vla.prompts import command_prompt  # noqa: E402
 def main():
     cfg = PandaKeypointEnvCfg(task="c1", cameras=True, image_size=args.image_size, front_view=args.front_view, terminate_on_success=True,
                               max_chain=args.max_chain, seed=args.seed, hold_fix=args.hold_fix,
-                              release=args.release, rest_speed=args.rest_speed, action_filter=args.action_filter, paired=args.paired)
+                              release=args.release, rest_speed=args.rest_speed, action_filter=args.action_filter, paired=args.paired,
+                              derived=args.derived)
     cfg.ref_path = args.ref
     if args.episode_s:
         cfg.episode_s = args.episode_s

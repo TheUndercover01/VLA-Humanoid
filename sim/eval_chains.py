@@ -71,6 +71,7 @@ parser.add_argument("--front_view", default="far", choices=["far", "near"])
 parser.add_argument("--state_history", action="store_true", help="vla: state = [state, previous action, past hand motion] (build_dataset --state_history)")
 parser.add_argument("--history", type=int, default=0, help="vla: send the front image this many steps back (build_dataset --history)")
 parser.add_argument("--action_filter", type=float, default=0.0, help="RL teacher trained with --action_filter (not for a VLA, which outputs the executed action)")
+parser.add_argument("--derived", action="store_true", help="9 Oct: per-skill rest speed and hold time from the clips (needs keypoint_ref_real_straight_v2.npz)")
 parser.add_argument("--ref", default=None, help="default: the stand-in reference of the env")
 parser.add_argument("--bank", default=None)
 parser.add_argument("--video", default=None)
@@ -240,6 +241,7 @@ def main():
         cfg.hold_fix, cfg.release, cfg.time_cost = args.hold_fix, args.release, args.time_cost
         cfg.knock_penalty, cfg.rest_speed = args.knock_penalty, args.rest_speed
         cfg.action_filter = args.action_filter
+        cfg.derived = args.derived
     cfg.bank_path = args.bank or cfg.bank_path
     cfg.scene.num_envs = n
     cfg.sim.device = args.device

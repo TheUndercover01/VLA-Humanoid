@@ -94,7 +94,7 @@ class PandaKeypointEnvCfg(PandaTaskEnvCfg):
     # The executed f_t (self.a_exec) is smooth by construction and is what a VLA is trained to output.
     action_filter: float = 0.0
     # derived (8 Oct, user: everything from the clips): "at rest" speed and how long it must hold come per skill from the reference file
-    # (motion/keypoint_ref.py rest_speed, hold_ticks) instead of REST_HOLD / HOLD; only multi_env.py's tick reads it
+    # (motion/keypoint_ref.py rest_speed, hold_ticks) instead of REST_HOLD / HOLD (cube + can: since 9 Oct, --derived)
     derived: bool = False
     observation_space = 76
     episode_s = 15.0
@@ -304,6 +304,9 @@ class PandaKeypointEnv(PandaTaskEnv):
         at_end = self.wp_reached >= self.n_wp - 1
         tol = self.done_tol[self.command()[0]]
         rest = self.cfg.rest_speed or (REST_HOLD if self.cfg.hold_fix else REST)
+        need = HOLD
+        if self.cfg.derived:              # 9 Oct (user): rest speed and hold time from the clips, per skill (as multi_env.py)
+            rest, need = self.rest_v[self.command()[0]], self.hold_t[self.command()[0]]
         ok = at_end & (self.d_goal < tol) & (speed < rest)
         if self.cfg.release:              # the gripper ends the skill as the clips' hand does
             closed = 1 - (self.grip_target / 0.04).clamp(0, 1)
@@ -316,10 +319,10 @@ class PandaKeypointEnv(PandaTaskEnv):
             ok &= ~last | tasks.success(self.cfg.final_check, s)
         self.chold = torch.where(ok, self.chold + 1, torch.zeros_like(self.chold))
         self.ok = ok & last
-        self.done_ok = last & (self.chold >= HOLD)
+        self.done_ok = last & (self.chold >= need)
         newly = self.done_ok & ~self.last_done
         self.succ_latch |= self.done_ok
-        adv = ~last & (self.chold >= HOLD)
+        adv = ~last & (self.chold >= need)
         rew = rew + DONE_BONUS * (adv | newly).float() + HOLD_BONUS * self.done_ok.float()
         self.last_done |= self.done_ok
         self.completed += adv.long()
