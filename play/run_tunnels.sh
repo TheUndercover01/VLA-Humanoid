@@ -6,7 +6,7 @@
 #   play/run_tunnels.sh stop                                     (tunnels down; servers.json emptied [+ pushed with PUSH=1])
 cd "$(dirname "$0")/.."
 C=/media/storage/ayush/cache; CF=${CF:-$HOME/bin/cloudflared}; SITE=../ayushdeshmukh; OUT=$SITE/projects/play/servers.json
-declare -A PORTS=([sabotage]=8810 [playground]=8800)
+declare -A PORTS=([sabotage]=8810 [playground]=8800 [tictactoe]=8820)
 publish() {
   [ -n "$PUSH" ] || return 0
   (cd $SITE && git add projects/play/servers.json && git commit -q -m "play: robot $1" && git push -q git@github.com:TheUndercover01/ayushdeshmukh.git main && echo "site pushed")
@@ -19,7 +19,7 @@ case $1 in
   start)
     stop
     pairs=""
-    for g in sabotage playground; do
+    for g in sabotage playground tictactoe; do
       curl -sf http://127.0.0.1:${PORTS[$g]}/health > /dev/null || { echo "$g is not running on ${PORTS[$g]}: start it first"; continue; }
       : > $C/tunnel_$g.log
       setsid $CF tunnel --no-autoupdate --url http://127.0.0.1:${PORTS[$g]} > $C/tunnel_$g.log 2>&1 < /dev/null & echo $! > $C/tunnel_$g.pid

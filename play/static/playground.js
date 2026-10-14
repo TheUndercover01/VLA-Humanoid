@@ -20,7 +20,7 @@ function moves() {
   if (draft.length >= MAX) return [];
   const {pos, held} = sim(draft), out = [];
   const targetFree = !Object.values(pos).includes("target");
-  if (draft.length === 0) for (const o of [0, 1]) out.push(["push", o, 0]);
+  if (draft.length === 0) out.push(["push", 0, 0]);        // 14 Oct: "push the cylinder" is out of the vocabulary (it topples)
   if (held === null) { for (const o of [0, 1]) if (pos[1 - o] !== "on") out.push(["pick-lift", o, 2]); }
   else {
     if (targetFree || pos[held] === "target") out.push(["place-down", held, 0]);
@@ -28,13 +28,22 @@ function moves() {
   }
   return out;
 }
+let shownMoves = null, shownDraft = null;
 function renderBuild() {
-  $("moves").innerHTML = "";
-  for (const m of moves()) {
-    const b = document.createElement("button"); b.textContent = text(m);
-    b.onclick = () => { draft.push(m); renderBuild(); }; $("moves").appendChild(b);
+  // 15 Oct: rebuild the buttons only when the choices change. onStatus calls this 10 times a second, and a button that is replaced
+  // between mouse-down and mouse-up never gets its click (the sentence builder ignored most clicks).
+  const ms = moves(), key = JSON.stringify(ms), dkey = JSON.stringify(draft);
+  if (key !== shownMoves) {
+    shownMoves = key; $("moves").innerHTML = "";
+    for (const m of ms) {
+      const b = document.createElement("button"); b.textContent = text(m);
+      b.onclick = () => { draft.push(m); renderBuild(); }; $("moves").appendChild(b);
+    }
   }
-  $("draft").innerHTML = draft.length ? draft.map(c => `<span class="cmd">${text(c)}</span>`).join(", then ") : '<span class="empty">Click commands above.</span>';
+  if (dkey !== shownDraft) {
+    shownDraft = dkey;
+    $("draft").innerHTML = draft.length ? draft.map(c => `<span class="cmd">${text(c)}</span>`).join(", then ") : '<span class="empty">Click commands above.</span>';
+  }
   $("run").disabled = !draft.length || !ready; $("run").textContent = ready ? "Run" : "Run (not connected)";
   $("undo").disabled = $("clear").disabled = !draft.length;
 }

@@ -86,8 +86,8 @@ def check_chain(chain):
         k, o, d = c
         free_target = "target" not in pos.values()
         if k == "push":
-            if i or d != 0:
-                return None, "a push can only be the first command"
+            if i or d != 0 or o != 0:          # 14 Oct: only the cube is pushed ("push the cylinder" left the vocabulary: it topples)
+                return None, "a push can only be the first command, and only of the cube"
             pos[o] = "target"
         elif k == "pick-lift":
             if held is not None or d != 2 or pos[1 - o] == "on":
@@ -430,11 +430,11 @@ def main():
 
     @web.get("/")
     def index():
-        return FileResponse(STATIC / "index.html")
+        return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache"})   # 15 Oct: players get page fixes at once
 
     @web.get("/playground.js")
     def js():
-        return FileResponse(STATIC / "playground.js", media_type="text/javascript")
+        return FileResponse(STATIC / "playground.js", media_type="text/javascript", headers={"Cache-Control": "no-cache"})
 
     if Path(args.site).is_dir():
         web.mount("/site", StaticFiles(directory=args.site, html=True), name="site")

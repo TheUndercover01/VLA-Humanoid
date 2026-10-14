@@ -212,7 +212,7 @@ def main():
 
     @web.get("/")
     def index():
-        return FileResponse(STATIC / "sabotage.html")
+        return FileResponse(STATIC / "sabotage.html", headers={"Cache-Control": "no-cache"})
 
     def status_of(i):
         s = slots[i]
