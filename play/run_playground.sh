@@ -8,7 +8,7 @@
 cd "$(dirname "$0")/.."
 export VLA_OBJECTS=multi VLA_GAME=mix VLA_TRAIN_TYPES="0,1,3,4" VLA_HOLDOUT=1 VLA_FIXED_TARGET="0.03,-0.12" VLA_PUSH_C3=0.5
 C=/media/storage/ayush/cache; D=/media/storage/ayush/vla_data
-GPU=${GPU:-1}; PORT=${PORT:-8800}; VPORT=${VPORT:-6201}; SLOTS=${SLOTS:-4}; NAME=${2:-ours_cyl_marks_realref}; BACKEND=${BACKEND:-vla}
+GPU=${GPU:-1}; PORT=${PORT:-8800}; VPORT=${VPORT:-6201}; SLOTS=${SLOTS:-4}; NAME=${2:-ours_cyl_marks_nolift}; BACKEND=${BACKEND:-vla}
 stop() {
   for f in $C/play_sim.pid $C/play_server.pid; do
     [ -f $f ] && kill -9 $(cat $f) 2>/dev/null; rm -f $f

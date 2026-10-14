@@ -1,5 +1,6 @@
 """13 Oct smoke test of play/sabotage.py (run in the isaaclab env, which has `websockets`): plays a few rounds through the websocket
 and prints each verdict.  python play/test_sabotage.py [port] [rounds]   Round plan: no sabotage, move at 2 s, fake mark at 2 s, knock at 4 s."""
+import os
 import asyncio
 import json
 import sys
@@ -14,7 +15,7 @@ async def main():
     async with websockets.connect(f"ws://127.0.0.1:{PORT}/ws", max_size=None) as ws:
         frames = 0
         for kind, at in PLAN:
-            await ws.send(json.dumps({"type": "start", "task": "c1"}))
+            await ws.send(json.dumps({"type": "start", "task": os.environ.get("TASK", "c1")}))
             started, fired, last = False, False, None
             while True:
                 m = await ws.recv()

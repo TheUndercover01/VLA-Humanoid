@@ -1,12 +1,12 @@
 #!/bin/bash
 # Start / stop the sabotage game (play/sabotage.py): the student's policy server + the Isaac game on one GPU, PIDs in cache/sab_*.pid.
-#   play/run_sabotage.sh start [checkpoint name]     default ours_cyl_marks_handleg_rand (the best short-task student, 13 Oct)
+#   play/run_sabotage.sh start [checkpoint name]     default ours_cyl_marks_nolift (the final model, 14 Oct)
 #   play/run_sabotage.sh stop
 # GPU=1 PORT=8810 VPORT=6202 SLOTS=2 BUDGET=1 ROUND_S=30. Page: http://127.0.0.1:$PORT/ (binds 127.0.0.1 only)
 cd "$(dirname "$0")/.."
 export VLA_OBJECTS=cube_cylinder VLA_PUSH_C3=0.5 VLA_FIXED_TARGET="0.03,-0.12"
 C=/media/storage/ayush/cache; D=/media/storage/ayush/vla_data
-GPU=${GPU:-1}; PORT=${PORT:-8810}; VPORT=${VPORT:-6202}; SLOTS=${SLOTS:-2}; NAME=${2:-ours_cyl_marks_handleg_rand}
+GPU=${GPU:-1}; PORT=${PORT:-8810}; VPORT=${VPORT:-6202}; SLOTS=${SLOTS:-2}; NAME=${2:-ours_cyl_marks_nolift}
 stop() {
   for f in $C/sab_sim.pid $C/sab_server.pid; do
     [ -f $f ] && kill -9 $(cat $f) 2>/dev/null; rm -f $f

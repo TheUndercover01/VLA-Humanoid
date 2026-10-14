@@ -423,6 +423,11 @@ def main():
     web = FastAPI()
     waiting = []
 
+    @web.get("/health")
+    def health():   # 15 Oct: the site page (projects/play) checks this before it embeds the game; any origin may ask
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"ok": True}, headers={"Access-Control-Allow-Origin": "*", "Cache-Control": "no-store"})
+
     @web.get("/")
     def index():
         return FileResponse(STATIC / "index.html")

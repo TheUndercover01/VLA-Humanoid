@@ -51,14 +51,25 @@ from vla.prompts import command_prompt, marked_sentence  # noqa: E402
 AUTHKEY = b"vla-humanoid"
 R, B = 0, 1
 DONE_THRESH, DONE_HOLD = 0.85, 5          # the eval defaults
-SETTLE, HOLD_OK = 15, 5                   # ticks after the last mark before judging; ticks the end result must hold
+SETTLE, HOLD_OK = 15, 2                   # ticks after the last mark before judging; ticks the end result must hold
 ROUNDS = 5
 # task name: (commands, layouts drawn as for this eval task, words for the page)
 TASKS = {
     "c1": ([("pick-lift", R, NONE), ("place-down", R, TARGET)], "c1", "put the cube on the green target"),
     "c2": ([("pick-lift", R, NONE), ("place-down", R, OTHER)], "c2", "stack the cube on the cylinder"),
     "swap": ([("pick-lift", B, NONE), ("place-down", B, OTHER)], "c2", "stack the cylinder on the cube"),
+    # 14 Oct: the final model's long tasks (4 and 6 commands, never shown in training)
+    "unstack": ([("pick-lift", R, NONE), ("place-down", R, OTHER), ("pick-lift", R, NONE), ("place-down", R, TARGET)], "c2",
+                "stack the cube on the cylinder, then move it to the target (4 steps)"),
+    "restack": ([("pick-lift", R, NONE), ("place-down", R, OTHER), ("pick-lift", R, NONE), ("place-down", R, TARGET),
+                 ("pick-lift", B, NONE), ("place-down", B, OTHER)], "c2", "stack, unstack to the target, then stack the cylinder on the cube (6 steps)"),
 }
+XY_TOL, Z_TOL, TARGET_Z, LIFT = 0.05, 0.03, 0.06, 0.04   # 14 Oct: the loose check of the final results (eval_chains --xy_tol ...)
+
+
+def round_ticks(chain):
+    """Round length: --round_s for 2 commands, 6 s more per extra command (as the evals: 6 s per command + 5 s)."""
+    return int(10 * max(args.round_s, 6.0 * len(chain) + 5.0))
 STATIC = Path(__file__).parent / "static"
 
 
@@ -67,10 +78,10 @@ def end_result(chain, s, i, start):
     k, obj, dest = chain[-1]
     me, other = (s["blue"][i], s["red"][i]) if obj == B else (s["red"][i], s["blue"][i])
     if k == "pick-lift":
-        return bool(me[2] - start[2] > 0.05)
+        return bool(me[2] - start[2] > LIFT)
     if dest == OTHER:
-        return bool(((me[:2] - other[:2]).norm() < 0.03) & ((me[2] - other[2] - (tasks.HALF_Z[0] + tasks.HALF_Z[1])).abs() < 0.015))
-    return bool(((me[:2] - s["target"][i, :2]).norm() < 0.03) & (me[2] < 0.045))
+        return bool(((me[:2] - other[:2]).norm() < XY_TOL) & ((me[2] - other[2] - (tasks.HALF_Z[0] + tasks.HALF_Z[1])).abs() < Z_TOL))
+    return bool(((me[:2] - s["target"][i, :2]).norm() < XY_TOL) & (me[2] < TARGET_Z))
 
 
 class Slot:
@@ -194,6 +205,11 @@ def main():
     web = FastAPI()
     waiting = []
 
+    @web.get("/health")
+    def health():   # 15 Oct: the site page (projects/play) checks this before it embeds the game; any origin may ask
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"ok": True}, headers={"Access-Control-Allow-Origin": "*", "Cache-Control": "no-store"})
+
     @web.get("/")
     def index():
         return FileResponse(STATIC / "sabotage.html")
@@ -203,7 +219,7 @@ def main():
         chain = s.chain
         return {"type": "status", "running": chain is not None, "task": s.task, "round": s.round, "rounds": ROUNDS, "score": s.score,
                 "commands": [command_prompt(*c) for c in chain] if chain else [], "marked": s.stage, "done_p": round(s.done_p, 2),
-                "t": round(s.t / 10, 1), "round_s": args.round_s, "left": s.left, "budget": args.budget, "log": s.log, "note": s.note,
+                "t": round(s.t / 10, 1), "round_s": round_ticks(chain) / 10 if chain is not None else args.round_s, "left": s.left, "budget": args.budget, "log": s.log, "note": s.note,
                 "sim_ok": s.ok_hold > 0, "tasks": {k: v[2] for k, v in TASKS.items()}}
 
     @web.websocket("/ws")
@@ -307,7 +323,7 @@ def main():
                     s.settle = 0
                 elif s.settle >= 0:
                     s.settle += 1
-                if s.settle >= SETTLE or s.t >= args.round_s * 10:
+                if s.settle >= SETTLE or s.t >= round_ticks(s.chain):
                     judge(i, s.settle < 0)
         now = time.time()
         if now - last_send >= 1.0 / args.fps:

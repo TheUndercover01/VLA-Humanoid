@@ -114,6 +114,9 @@ $("undo").onclick = () => { draft.pop(); renderBuild(); };
 $("clear").onclick = () => { draft = []; renderBuild(); };
 $("scene").onclick = () => send({type: "new_scene"});
 for (const id of ["build", "ttt", "tower"]) $("tab-" + id).onclick = () => { $("msg").textContent = ""; setMode(id, true); };
+// 15 Oct: ?modes=build (the public page) shows only the listed modes; tic-tac-toe and the tower need a model trained for them
+const MODES = (new URLSearchParams(location.search).get("modes") || "build,ttt,tower").split(",");
+for (const id of ["build", "ttt", "tower"]) if (!MODES.includes(id)) $("tab-" + id).hidden = true;
 for (let k = 0; k < 9; k++) {
   const b = document.createElement("button"); b.className = "sq"; b.onclick = () => { $("msg").textContent = ""; send({type: "move", square: k}); };
   $("board").appendChild(b);
