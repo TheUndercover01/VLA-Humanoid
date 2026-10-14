@@ -30,6 +30,10 @@ parser.add_argument("--max_chain", type=int, default=2)
 parser.add_argument("--out", required=True)
 parser.add_argument("--seed", type=int, default=100)
 parser.add_argument("--image_size", type=int, default=256)
+parser.add_argument("--pause_p", type=float, default=0.0, help="14 Oct: per tick, chance that an env starts a pause: the EXECUTED arm motion is 0 "
+                    "(gripper kept as last executed) for --pause_ticks ticks; the recorded label stays the teacher's action (the done flag then sees "
+                    "'object held still' frames that are not done)")
+parser.add_argument("--pause_ticks", default="5,15")
 parser.add_argument("--noise", type=float, default=0.3, help="std of DART noise on executed dx..dyaw (0 = off)")
 # the teacher's env settings (they change when a command counts as done, so they must match its training)
 parser.add_argument("--hold_fix", action="store_true")
@@ -40,6 +44,14 @@ parser.add_argument("--front_view", default="far", choices=["far", "near"])
 parser.add_argument("--derived", action="store_true", help="9 Oct: per-skill rest speed and hold time from the clips (needs keypoint_ref_real_straight_v2.npz)")
 parser.add_argument("--ref", default="data/processed/keypoint_ref_real_straight.npz",
                     help="template of the env; MUST be the one the teacher was trained with (8 Oct: this script used the env default, the stand-in template)")
+parser.add_argument("--hand_leg", action="store_true", help="10 Oct: the hand's straight leg to the object in the reward (+4 teacher observations)")
+parser.add_argument("--place_tol", type=float, default=0.0, help="14 Oct: put-down done tolerance in m (mean corner distance; 0 = default 2.14 cm)")
+parser.add_argument("--place_hold", type=int, default=0, help="14 Oct: ticks the put-down done check must hold (0 = default 3)")
+parser.add_argument("--held_p", type=float, default=0.0, help="14 Oct: share of episodes starting with the object in the hand (put it down, then pick up the next)")
+parser.add_argument("--push_p", type=float, default=0.3, help="14 Oct: share of push episodes among the fresh ones")
+parser.add_argument("--cube_push_only", action="store_true", help="14 Oct: pushes move the cube only (no 'push the cylinder')")
+parser.add_argument("--rand_init", type=float, default=0.0, help="12 Oct: scale of the random joint offsets of the arm's starting pose (0 = home pose)")
+parser.add_argument("--bank_p", type=float, default=0.6, help="share of training episodes started from a scripted clip state (0 = none)")
 parser.add_argument("--paired", action="store_true", help="fresh-layout episodes come twice: each cube commanded on the same layout")
 parser.add_argument("--episode_s", type=float, default=0.0, help="0 = the env default (15 s)")
 AppLauncher.add_app_launcher_args(parser)
@@ -54,21 +66,27 @@ import torch  # noqa: E402
 
 from sim.clips import SKILLS  # noqa: E402
 from sim.envs.keypoint_env import PandaKeypointEnv, PandaKeypointEnvCfg  # noqa: E402
+from sim.envs import tasks  # noqa: E402
+if tasks.OBJECTS == "multi":      # 10 Oct: the made-up-objects / games env (sim/envs/multi_env.py, local only) behind the same flags
+    from sim.envs.multi_env import PandaMultiEnv as KeypointEnv, PandaMultiEnvCfg as KeypointEnvCfg  # noqa: E402
+else:
+    KeypointEnv, KeypointEnvCfg = PandaKeypointEnv, PandaKeypointEnvCfg
 from sim.rl_cfg import RslPolicy  # noqa: E402
 from vla.prompts import command_prompt  # noqa: E402
 
 
 def main():
-    cfg = PandaKeypointEnvCfg(task="c1", cameras=True, image_size=args.image_size, front_view=args.front_view, terminate_on_success=True,
+    cfg = KeypointEnvCfg(task="c1", cameras=True, image_size=args.image_size, front_view=args.front_view, terminate_on_success=True,
                               max_chain=args.max_chain, seed=args.seed, hold_fix=args.hold_fix,
                               release=args.release, rest_speed=args.rest_speed, action_filter=args.action_filter, paired=args.paired,
-                              derived=args.derived)
+                              derived=args.derived, hand_leg=args.hand_leg, bank_p=args.bank_p,
+                              rand_init=args.rand_init, held_p=args.held_p, place_tol=args.place_tol, place_hold=args.place_hold, push_p=args.push_p, cube_push_only=args.cube_push_only)
     cfg.ref_path = args.ref
     if args.episode_s:
         cfg.episode_s = args.episode_s
     cfg.scene.num_envs = args.num_envs
     cfg.sim.device = args.device
-    env = PandaKeypointEnv(cfg)
+    env = KeypointEnv(cfg)
     policy = RslPolicy(args.policy.removeprefix("rsl:"), env)
     obs, _ = env.reset()
     n, dev = env.num_envs, env.device
@@ -78,6 +96,10 @@ def main():
     recs = [{k: [] for k in keys} for _ in range(n)]
     cmds = [None] * n
     kept, tried = 0, 0
+    pause_left = torch.zeros(n, dtype=torch.long, device=dev)
+    shadow = torch.zeros(n, 4, device=dev)
+    last_grip = torch.ones(n, device=dev)
+    n_paused, n_ticks = 0, 0
     while kept < args.episodes:
         s = env.state()
         yaw = env.tcp_yaw()
@@ -88,7 +110,11 @@ def main():
         front, wrist = img["front"][..., :3].to(torch.uint8).cpu(), img["wrist"][..., :3].to(torch.uint8).cpu()
         clean = action.clamp(-1, 1)
         if args.action_filter > 0:
-            clean[:, :4] = args.action_filter * env.a_filt + (1 - args.action_filter) * clean[:, :4]
+            # the label is the executed (filtered) action of the UNPAUSED teacher: with pauses the env's own filter state is zeroed, so the label uses a shadow filter
+            base = shadow if args.pause_p > 0 else env.a_filt
+            clean[:, :4] = args.action_filter * base + (1 - args.action_filter) * clean[:, :4]
+            if args.pause_p > 0:
+                shadow = clean[:, :4].clone()
         clean = clean.cpu()
         state = state.cpu()
         for i in range(n):
@@ -105,6 +131,18 @@ def main():
         executed = action.clone()
         if args.noise > 0:
             executed[:, :4] += args.noise * torch.randn_like(executed[:, :4])
+        if args.pause_p > 0:
+            lo, hi = (int(v) for v in args.pause_ticks.split(","))
+            start = (pause_left == 0) & (torch.rand(n, device=dev) < args.pause_p)
+            pause_left = torch.where(start, torch.randint(lo, hi + 1, (n,), device=dev), pause_left)
+            on = pause_left > 0
+            executed[on, :4] = 0.0
+            executed[on, 4] = last_grip[on]
+            env.a_filt[on] = 0.0                         # the env's 0.95 low-pass would keep the arm coasting: stop it
+            pause_left = (pause_left - 1).clamp(min=0)
+            n_paused += int(on.sum())
+            last_grip = executed[:, 4].clone()
+        n_ticks += n
         env.episode_done[:] = False
         obs, *_ = env.step(executed)
         if hasattr(env, "done_now"):                           # 9 Oct: the env's own "this command is done now" check, per tick (the done flag's label)
@@ -112,6 +150,8 @@ def main():
             for i in range(n):
                 recs[i]["dnow"].append(bool(dn[i]))
         for i in env.episode_done.nonzero().squeeze(-1).tolist():
+            pause_left[i] = 0
+            shadow[i] = 0.0
             tried += 1
             r = recs[i]
             # the work must be DONE at the end (a knocked-apart episode that never recovers is not kept, although its success latch was set once)
@@ -125,6 +165,8 @@ def main():
                 if kept % 100 == 0:
                     print(f"kept {kept}/{args.episodes} ({tried} tried)", flush=True)
             recs[i] = {k: [] for k in keys}
+    if args.pause_p > 0:
+        print(f"paused ticks: {n_paused}/{n_ticks} ({100 * n_paused / max(n_ticks, 1):.1f}%)", flush=True)
     print(f"kept {kept}/{args.episodes} successful episodes ({tried} tried) -> {out}", flush=True)
     env.close()
 

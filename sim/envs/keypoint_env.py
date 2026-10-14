@@ -21,10 +21,13 @@ Reward (motion/keypoint_ref.py makes the waypoints from the clips; same code for
   the goal pose (push turns the cube in the clips, lift and place do not), and at rest, for 0.3 s.
 Moving the potential's difference makes standing still worth nothing and going back cost what going
 forward paid. Nothing here looks at the gripper; a cube resting at its goal is done however it got there.
+With cfg.hand_leg (10 Oct, user; as sim/envs/multi_env.py) the hand gets a leg too: a straight line from where the
+hand is when the command begins to the commanded object's centre, added to the potential (see hand_potential).
 
 Training starts (cfg.max_chain commands per episode): 60% from the clips' states replayed in sim
 (sim/record_state_bank.py; reach frames start a pick-lift with the hand on its way), 10% from a
-stacked tower, 30% at home. Evaluation (sim/eval_chains.py --keypoints) sets one fixed chain.
+stacked tower, 30% at home. cfg.bank_p sets the first share (0 = no scripted mid-skill states: 10% towers,
+90% at home). Evaluation (sim/eval_chains.py --keypoints) sets one fixed chain.
 """
 import numpy as np
 import torch
@@ -96,6 +99,25 @@ class PandaKeypointEnvCfg(PandaTaskEnvCfg):
     # derived (8 Oct, user: everything from the clips): "at rest" speed and how long it must hold come per skill from the reference file
     # (motion/keypoint_ref.py rest_speed, hold_ticks) instead of REST_HOLD / HOLD (cube + can: since 9 Oct, --derived)
     derived: bool = False
+    # hand_leg (10 Oct, user: "make it a three-way thing", gripper -> object -> target): the hand's straight leg of multi_env.py, so the
+    # reward pulls the hand to the object from home and the scripted mid-skill starts are not needed (+4 observations)
+    hand_leg: bool = False
+    # push_lift_pen (13 Oct, user: "do 1"): the hand-leg teachers 'push' by picking the cube up and carrying it (85-92% of their push episodes lift it
+    # more than 3 cm; the old teacher 0%), so a student cannot tell push from pick up. While a push command is running, - push_lift_pen per tick x
+    # clamp((rise of the commanded object above its resting height - 1 cm) / 4 cm, 0, 1).
+    push_lift_pen: float = 0.0
+    # 14 Oct (user: the student never sees what follows a put-down; find the dataset problem): every recorded put-down was the LAST command
+    # of its episode. held_p = share of episodes that START with the object already between the closed fingers (arm at its random start
+    # pose): "put it on the target / the other object, then pick up the next one", so the put -> pick handoff is in the data, still 2 commands.
+    # 14 Oct (user: make the teacher's done check as strict as the eval): place_tol > 0 replaces the put-down done tolerance (mean corner
+    # distance, default 2 cm + the clips' end turn = 2.14 cm, which accepts the cube up to ~2 cm above the stack while the eval wants 1.5 cm);
+    # place_hold > 0 = ticks the put-down check must hold (default HOLD = 3; the eval's in-order check holds 5)
+    place_tol: float = 0.0
+    place_hold: int = 0
+    held_p: float = 0.0
+    push_p: float = 0.3                   # share of push episodes among the fresh (not held) ones (was fixed at 0.3)
+    cube_push_only: bool = False          # 14 Oct (user): no "push the cylinder" (it topples); pushes move the cube only
+    bank_p: float = P_BANK                # share of training episodes started from a clip state of the bank (0 = none)
     observation_space = 76
     episode_s = 15.0
 
@@ -115,10 +137,13 @@ def yaw_of_quat(q):
 
 class PandaKeypointEnv(PandaTaskEnv):
     cfg: PandaKeypointEnvCfg
+    hand_obs_in_cfg = False                    # multi_env: its observation_space already counts the hand leg
 
     def __init__(self, cfg: PandaKeypointEnvCfg, render_mode=None, **kwargs):
         if cfg.action_filter > 0:
             cfg.observation_space += 4         # 76 -> 80 (multi_env: 103 -> 107)
+        if cfg.hand_leg and not self.hand_obs_in_cfg:
+            cfg.observation_space += 4         # the hand leg: offset to its next waypoint, progress
         super().__init__(cfg, render_mode, **kwargs)
         n, dev = self.num_envs, self.device
         self.a_filt = torch.zeros(n, 4, device=dev)
@@ -145,6 +170,10 @@ class PandaKeypointEnv(PandaTaskEnv):
             self.wp_tol[k, -1] = torch.maximum(self.wp_tol[k, -1], self.done_tol[k])
         self.rest_v = torch.full((len(SKILLS),), REST_HOLD, device=dev)
         self.hold_t = torch.full((len(SKILLS),), HOLD, dtype=torch.long, device=dev)
+        if cfg.place_tol > 0:
+            self.done_tol[PLACE] = cfg.place_tol
+        if cfg.place_hold > 0:
+            self.hold_t[PLACE] = cfg.place_hold
         if cfg.derived:
             for k, name in keys.items():
                 self.rest_v[k] = float(ref[f"{name}_rest_speed"])
@@ -183,6 +212,8 @@ class PandaKeypointEnv(PandaTaskEnv):
         self.d_goal = torch.zeros(n, device=dev)
         self.prev_pos = torch.zeros(n, 3, device=dev)
         self.prev_action = torch.full((n, 5), torch.nan, device=dev)
+        self.hand_start = torch.zeros(n, 3, device=dev)
+        self.hand_reached = torch.zeros(n, dtype=torch.long, device=dev)
         self.last_episode["completed"] = torch.zeros(n, device=dev)
         self.last_episode["n_cmd"] = torch.zeros(n, device=dev)
         self.skill_stats = np.zeros((len(SKILLS), 2))
@@ -244,7 +275,9 @@ class PandaKeypointEnv(PandaTaskEnv):
         self.chold[ids] = 0
         self.lift_start[ids] = torch.nan
         self.need_start[ids] = False
-        self.pot[ids] = self.potential(ac)[ids]
+        tcp = self.state()["tcp"]
+        self.hand_start[ids], self.hand_reached[ids] = tcp[ids], 0
+        self.pot[ids] = (self.potential(ac) + (self.hand_potential(tcp, ap) if self.cfg.hand_leg else 0))[ids]
         self.prev_pos[ids] = ap[ids]
 
     @staticmethod
@@ -272,6 +305,24 @@ class PandaKeypointEnv(PandaTaskEnv):
         close = torch.where(self.wp_reached >= self.n_wp - 1, torch.ones_like(close), close)
         return self.wp_reached.float() + close
 
+    def hand_potential(self, tcp, ap):
+        """The hand's leg (as multi_env.py): n_wp waypoints on a straight line from where the hand was when the command began to the
+        commanded object's centre (the simulator knows both), the first waypoint's tolerance (3 cm, from the clips), reached waypoints
+        latched, potential = waypoints reached + closeness to the next, constant once the hand is at the object (carrying it away costs
+        nothing). Added to the object's potential with no weight of its own; the gripper is not looked at."""
+        n = self.num_envs
+        tol = self.wp_tol[self.command()[0], 0]
+        line = self.hand_start[:, None] + torch.linspace(0, 1, self.n_wp, device=self.device)[None, :, None] * (ap - self.hand_start)[:, None]
+        d = (tcp[:, None] - line).norm(dim=-1)                                              # (n, n_wp)
+        idx = torch.arange(self.n_wp, device=self.device)
+        hit = (d < tol[:, None]) & (idx[None] >= self.hand_reached[:, None])
+        furthest = torch.where(hit, idx[None], torch.full_like(d, -1, dtype=torch.long)).amax(-1)
+        self.hand_reached = torch.maximum(self.hand_reached, furthest)
+        nxt = (self.hand_reached + 1).clamp(max=self.n_wp - 1)
+        close = torch.exp(-(d[torch.arange(n, device=self.device), nxt] / tol) ** 2)
+        close = torch.where(self.hand_reached >= self.n_wp - 1, torch.ones_like(close), close)
+        return self.hand_reached.float() + close
+
     def _pre_physics_step(self, actions):
         if self.cfg.action_filter > 0:
             a = actions.clamp(-1.0, 1.0)
@@ -297,14 +348,18 @@ class PandaKeypointEnv(PandaTaskEnv):
         # fingers (contact jitter) while its position does not change by 1 mm
         speed = (ap - self.prev_pos).norm(dim=-1) / (self.cfg.sim.dt * self.cfg.decimation)
         self.prev_pos = ap.clone()
-        pot = self.potential(ac)
+        pot = self.potential(ac) + (self.hand_potential(s["tcp"], ap) if self.cfg.hand_leg else 0)
         rew = pot - self.pot - self.cfg.time_cost
         self.pot = pot
+        if self.cfg.push_lift_pen > 0:
+            sk, cb, _ = self.command()
+            rest_z = torch.tensor(tasks.HALF_Z, device=self.device)[cb]
+            rew = rew - self.cfg.push_lift_pen * (sk == SKILLS.index("push")).float() * ((ap[:, 2] - rest_z - 0.01) / 0.04).clamp(0, 1)
 
         at_end = self.wp_reached >= self.n_wp - 1
         tol = self.done_tol[self.command()[0]]
         rest = self.cfg.rest_speed or (REST_HOLD if self.cfg.hold_fix else REST)
-        need = HOLD
+        need = self.hold_t[self.command()[0]] if self.cfg.place_hold > 0 else HOLD
         if self.cfg.derived:              # 9 Oct (user): rest speed and hold time from the clips, per skill (as multi_env.py)
             rest, need = self.rest_v[self.command()[0]], self.hold_t[self.command()[0]]
         ok = at_end & (self.d_goal < tol) & (speed < rest)
@@ -355,6 +410,10 @@ class PandaKeypointEnv(PandaTaskEnv):
                          (ac - self.goal_corners).flatten(1), (self.path[rows, nxt] - ac).flatten(1),
                          oh(skill, 4).float(), oh(cube, 2).float(), oh(dest, 3).float(),
                          (self.wp_reached.float() / (self.n_wp - 1))[:, None]], dim=-1)
+        if self.cfg.hand_leg:
+            nh = (self.hand_reached + 1).clamp(max=self.n_wp - 1)
+            hand_next = self.hand_start + (nh.float() / (self.n_wp - 1))[:, None] * (ap - self.hand_start)
+            obs = torch.cat([obs, hand_next - s["tcp"], (self.hand_reached.float() / (self.n_wp - 1))[:, None]], dim=-1)
         if self.cfg.action_filter > 0:
             obs = torch.cat([obs, self.a_filt], dim=-1)
         out = {"policy": obs}
@@ -391,7 +450,10 @@ class PandaKeypointEnv(PandaTaskEnv):
         out = self._sample_one()
         chain, lay, frame, top = out
         if self.cfg.paired and frame < 0 and top < 0:
-            self.pending.append(([(k, 1 - c, d) for k, c, d in chain], lay.copy(), -1, -1))
+            twin = [(k, 1 - c, d) for k, c, d in chain]
+            if self.cfg.cube_push_only and twin[0][0] == PUSH:
+                return out                                  # the twin would push the cylinder
+            self.pending.append((twin, lay.copy(), frame, -1))      # frame -2 (held start) stays a held start
         return out
 
     def _sample_one(self):
@@ -400,7 +462,7 @@ class PandaKeypointEnv(PandaTaskEnv):
         forced = bool(PUSH_SHARE) and self.rng.random() < PUSH_SHARE
         if forced:
             r = 1.0                                         # the fresh-layout branch below, as a push
-        if r < P_BANK:
+        if r < self.cfg.bank_p:
             k = int(self.rng.choice([REACH, PUSH, PICK, PLACE]))
             f = int(self.rng.choice(self.bank_by_skill[k]))
             cube = int(self.rng.integers(2))
@@ -408,7 +470,7 @@ class PandaKeypointEnv(PandaTaskEnv):
             dest = TARGET if cmd == PUSH else (int(self.rng.integers(2)) if cmd == PLACE else NONE)
             act, hand = self.bank["cube_pos"][f, :2], self.bank["cmd"][f, :2]
             if tasks.FIXED_TARGET:
-                tgt = np.array(tasks.FIXED_TARGET)
+                tgt = np.array(tasks.FIXED_TARGETS[int(self.rng.integers(len(tasks.FIXED_TARGETS)))])
                 oth, = self._away([act, hand, tgt])
             elif cmd == PUSH:
                 tgt = self.bank_end[self.bank["clip"][f], :2] + self.rng.uniform(-0.03, 0.03, 2)
@@ -417,20 +479,38 @@ class PandaKeypointEnv(PandaTaskEnv):
             else:
                 oth, tgt = self._away([act, hand], 2)
             chain, frame, top = [(cmd, cube, dest)], f, -1
-        elif r < P_BANK + P_STACKED:
+        elif r < self.cfg.bank_p + P_STACKED:
             cube = int(self.rng.integers(2))
             if tasks.FIXED_TARGET:
-                tgt = np.array(tasks.FIXED_TARGET)
+                tgt = np.array(tasks.FIXED_TARGETS[int(self.rng.integers(len(tasks.FIXED_TARGETS)))])
                 oth, = self._away([tgt])
             else:
                 oth, tgt = self._away([], 2)
             act, chain, frame, top = oth, [(PICK, cube, NONE)], -1, cube
+        elif r < self.cfg.bank_p + P_STACKED + self.cfg.held_p:
+            # held start (frame -2, set up in _reset_idx): the object starts in the hand; first command = put it down
+            cube = int(self.rng.integers(2))
+            for _ in range(20):
+                try:
+                    lay = tasks.sample_layouts("c1", 1, torch.Generator().manual_seed(int(self.rng.integers(1 << 30))))[0].numpy()
+                    break
+                except AssertionError:
+                    pass
+            act, oth, tgt = lay[0:2], lay[2:4], lay[4:6]
+            chain, frame, top = [(PLACE, cube, int(self.rng.integers(2)))], -2, -1
         else:
             cube = int(self.rng.integers(2))
-            push = forced or self.rng.random() < 0.3
-            c3 = push and self.rng.random() < PUSH_C3
-            lay = tasks.sample_layouts("c3" if c3 else "push" if push else "c1", 1, torch.Generator().manual_seed(
-                int(self.rng.integers(1 << 30))))[0].numpy()
+            push = forced or self.rng.random() < self.cfg.push_p
+            if push and self.cfg.cube_push_only:
+                cube = 0
+            c3 = push and self.rng.random() < PUSH_C3 and not self.cfg.cube_push_only
+            for _ in range(20):   # 10 Oct: 64 candidates can all be rejected (rare; crashed a bank_p 0 run, 90% fresh layouts, at iteration 433)
+                try:
+                    lay = tasks.sample_layouts("c3" if c3 else "push" if push else "c1", 1, torch.Generator().manual_seed(
+                        int(self.rng.integers(1 << 30))))[0].numpy()
+                    break
+                except AssertionError:
+                    pass
             act, oth, tgt = (lay[2:4], lay[0:2], lay[4:6]) if c3 else (lay[0:2], lay[2:4], lay[4:6])
             chain, frame, top = [(PUSH, cube, TARGET) if push else (PICK, cube, NONE)], -1, -1
         while len(chain) < self.cfg.max_chain:
@@ -527,3 +607,29 @@ class PandaKeypointEnv(PandaTaskEnv):
                         self.grip_target[e[m]] = torch.clamp(self.grip_target[e[m]], min=0.04 * 0.8)
                     cube.write_root_pose_to_sim(pm, env_ids=e[m])
                     cube.write_root_velocity_to_sim(torch.zeros(int(m.sum()), 6, device=dev), env_ids=e[m])
+        hs = np.nonzero(frames == -2)[0]
+        if len(hs):       # 14 Oct, held start: the commanded object between the fingers at the arm's (random) start pose, fingers closed on it
+            from isaaclab.utils.math import quat_from_matrix
+            from sim.envs.panda_env import TABLE_ORIGIN
+            from sim.envs.panda_fk import hand_pose
+            e = env_ids[torch.tensor(hs, device=dev)]
+            q = self.robot.data.joint_pos[e].clone()
+            p, R, yaw = hand_pose(q[:, self.arm_ids].double())
+            tcp = p.float() - torch.tensor(TABLE_ORIGIN, device=dev)             # table frame
+            quat = quat_from_matrix(R.float())
+            objs = [chains[j][0][1] for j in hs]
+            half_w = torch.tensor([tasks.CYL_R if (CYL and o == 1) else CUBE_HALF for o in objs], device=dev)
+            q[:, self.finger_ids] = (half_w - 0.001)[:, None]                         # each finger touching the object
+            self.robot.write_joint_state_to_sim(q, torch.zeros_like(q), env_ids=e)
+            qt = q.clone()
+            qt[:, self.finger_ids] = 0.0
+            self.robot.set_joint_position_target(qt, env_ids=e)
+            self.grip_target[e] = 0.0                                                  # closed: squeezes it
+            self.cmd[e] = tcp
+            self.cmd_yaw[e] = yaw.float()
+            for oid, obj in [(0, self.red), (1, self.blue)]:
+                m = torch.tensor([o == oid for o in objs], device=dev)
+                if m.any():
+                    pose = torch.cat([tcp[m] + self.table_origin[e[m]], quat[m]], -1)
+                    obj.write_root_pose_to_sim(pose, env_ids=e[m])
+                    obj.write_root_velocity_to_sim(torch.zeros(int(m.sum()), 6, device=dev), env_ids=e[m])

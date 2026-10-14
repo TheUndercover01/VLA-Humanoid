@@ -55,7 +55,8 @@ def command_prompt(skill, cube, dest):
     raise ValueError(skill)
 
 
-def marked_sentence(cmds, k):
+def marked_sentence(cmds, k, progress=False):
     """The whole instruction with the first k commands marked as done (build_dataset --prompt_mode marks; at inference
-    sim/vla_policy.py writes the marks from the policy's own done flag)."""
-    return ", then ".join(c + (" (done)" if i < k else "") for i, c in enumerate(cmds))
+    sim/vla_policy.py writes the marks from the policy's own done flag). progress (13 Oct, user): the command being worked on
+    (number k + 1) also carries "(in progress)"; the pointer that sets it is the policy's own done-flag count."""
+    return ", then ".join(c + (" (done)" if i < k else " (in progress)" if progress and i == k else "") for i, c in enumerate(cmds))

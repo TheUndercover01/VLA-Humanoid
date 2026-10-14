@@ -93,7 +93,7 @@ class CommandVLAPolicy:
     the RL teacher is evaluated with), and a switch forces a replan."""
 
     def __init__(self, port, replan=1, whole=None, history=0, state_history=False, learned_done=None,
-                 done_thresh=0.5, done_hold=3, memory=False, marks=False, k_norm=6.0, vote=1, recheck=None):
+                 done_thresh=0.5, done_hold=3, memory=False, marks=False, k_norm=6.0, vote=1, recheck=None, progress=False):
         """whole: one instruction for the entire episode (the whole task, no planner); the env still switches
         commands, but only to score progress, and the VLA is never told.
         learned_done: the chain's commands [(skill, cube, dest)]. The VLA (trained with build_dataset --done_frames) gets
@@ -116,6 +116,8 @@ class CommandVLAPolicy:
         # to hold any more, erase its mark AND the pick-up of the same object before it, so the sentence reads as a fresh "pick X, put X on Y",
         # the state the student was trained on (erasing the put-down alone leaves "X picked (done), put X on Y" with X on the table)
         self.recheck_pair = bool(recheck) and len(recheck) > 5 and bool(recheck[5])
+        self.progress = progress          # 13 Oct: the current command also carries "(in progress)" (build_dataset --progress)
+        self.rearm, self.armed = None, None   # 13 Oct: after a mark the flag must drop below `rearm` before the next mark counts (None = off)
         self.vote = vote          # 8 Oct: query the VLA this many times (it samples noise) and take the MIN of the done flags
         self.memory, self.marks, self.k_norm = memory or marks, marks, k_norm
         self.stage = self.streak = None
@@ -123,6 +125,21 @@ class CommandVLAPolicy:
         self.queue, self.k, self.cur = None, 0, None
         self.fronts = []                 # front images of the last `history` + 1 steps (eval: one episode per env)
         self.state_history, self.past, self.prev_a = state_history, [], None
+        self.place_shift = None          # 12 Oct: (x, y, z) used while the pointer is on a put-down command (default: the same as `shift`)
+        self.shift = (0.0, 0.0)          # 12 Oct (game layer test): the scene is shifted by this (x, y); the state the VLA is told is shifted back
+
+    def offsets(self, env):
+        """(n, 3) scene offset the VLA is not shown, per env: `shift` while on a pick-up, `place_shift` while on a put-down (None: no shift at all)."""
+        if self.place_shift is None:
+            return None
+        n = env.num_envs
+        off = torch.zeros(n, 3)
+        off[:, :2] = torch.tensor(self.shift)
+        if self.chain and self.stage is not None:
+            for i, (ch, k) in enumerate(zip(self.chains(n), self.stage.tolist())):
+                if ch[min(k, len(ch) - 1)][0] == "place-down":
+                    off[i] = torch.tensor(self.place_shift)
+        return off
 
     def chains(self, n):
         """One chain per env: the same one for all (eval_chains), or `chain` is already a list of chains (sim/eval_multi.py, one scene each)."""
@@ -155,10 +172,17 @@ class CommandVLAPolicy:
         if self.history:
             self.fronts = (self.fronts + [env.images()["front"][..., :3].to(torch.uint8).cpu().numpy()])[-(self.history + 1):]
         if self.queue is None or self.k >= self.replan or switched:
+            off = self.offsets(env)
+            if off is not None:
+                env.set_front_offset(off)
             img = env.images()
             s = env.state()
             yaw = env.tcp_yaw()
             state = torch.cat([s["tcp"], torch.sin(yaw)[:, None], torch.cos(yaw)[:, None], s["grip"][:, None] / 0.08], -1)
+            if off is not None:
+                state[:, :3] -= off.to(state.device)
+            else:
+                state[:, :2] -= torch.tensor(self.shift, device=state.device)
             if self.state_history:       # same layout as vla/build_dataset.py --state_history
                 state = torch.cat([state, self.prev_a] + [self.past[max(len(self.past) - 1 - k, 0)] - state for k in (5, 10)], -1)
             skill, cube, dest = (x.tolist() for x in env.command())
@@ -168,7 +192,7 @@ class CommandVLAPolicy:
                     self.streak = torch.zeros(env.num_envs, dtype=torch.long)
                 chains = self.chains(env.num_envs)
                 if self.marks:
-                    prompts = [marked_sentence([command_prompt(*c) for c in ch], k) for ch, k in zip(chains, self.stage.tolist())]
+                    prompts = [marked_sentence([command_prompt(*c) for c in ch], k, self.progress) for ch, k in zip(chains, self.stage.tolist())]
                 elif self.memory:
                     prompts = [", then ".join(command_prompt(*c) for c in ch) for ch in chains]
                     state = torch.cat([state, (self.stage.float() / self.k_norm)[:, None].to(state.device)], -1)
@@ -192,7 +216,7 @@ class CommandVLAPolicy:
             if self.recheck and self.marks and self.since is not None:
                 inwin, _ = self.window(env.num_envs)
                 if inwin.any():           # one more query, the sentence with the last mark removed for the envs being checked
-                    msg = dict(msg, task=[marked_sentence([command_prompt(*c) for c in ch], k - 1 if w else k)
+                    msg = dict(msg, task=[marked_sentence([command_prompt(*c) for c in ch], k - 1 if w else k, self.progress)
                                           for ch, k, w in zip(self.chains(env.num_envs), self.stage.tolist(), inwin.tolist())])
                     self.conn.send(msg)
                     r = self.conn.recv()
@@ -206,7 +230,13 @@ class CommandVLAPolicy:
         self.k += 1
         if self.chain:
             self.done_p = a[:, 5].cpu()      # the latest done-flag value of every env (videos show it)
-            self.streak = torch.where((a[:, 5] > self.done_thresh).cpu(), self.streak + 1, torch.zeros_like(self.streak))
+            high = (a[:, 5] > self.done_thresh).cpu()
+            if self.rearm is not None:
+                if self.armed is None:
+                    self.armed = torch.ones(len(self.stage), dtype=torch.bool)
+                self.armed |= (a[:, 5] < self.rearm).cpu()
+                high &= self.armed
+            self.streak = torch.where(high, self.streak + 1, torch.zeros_like(self.streak))
             lens = torch.tensor([len(ch) for ch in self.chains(len(self.stage))])
             adv = (self.streak >= self.done_hold) & (self.stage < lens - (0 if self.memory else 1))
             if self.recheck and self.marks:
@@ -239,6 +269,8 @@ class CommandVLAPolicy:
                 _, keep = self.window(env.num_envs)
                 self.since = torch.where((self.since >= d0 + win) & ~keep, torch.full_like(self.since, -1), self.since)
             if adv.any():                # the VLA said the command is done: next command, replan right away
+                if self.armed is not None:
+                    self.armed &= ~adv
                 self.stage = self.stage + adv.long()
                 self.streak = torch.where(adv, torch.zeros_like(self.streak), self.streak)
                 if self.recheck and self.marks:

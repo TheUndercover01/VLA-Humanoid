@@ -8,6 +8,7 @@ The task only changes the reset distribution, reward and success check (tasks.py
 from __future__ import annotations
 
 import math
+import os
 
 import torch
 
@@ -16,7 +17,7 @@ from isaaclab.assets import Articulation, RigidObject, RigidObjectCfg
 from isaaclab.envs import DirectRLEnv, DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, TiledCamera, TiledCameraCfg
-from isaaclab.sim import SimulationCfg
+from isaaclab.sim import PhysxCfg, SimulationCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.math import matrix_from_quat, quat_from_matrix
 from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG
@@ -28,6 +29,9 @@ TABLE_ORIGIN = (0.5, 0.0, 0.0)          # table frame origin in the env frame (r
 TCP_OFFSET = 0.1034                      # panda_hand -> fingertip centre, along hand z
 HOME_Q = [0.0, -0.2, 0.0, -2.4, 0.0, 2.2, 0.785]   # tuned in sim/probe_reach.py
 HOME_TCP = tasks.HOME_TCP                # TCP at HOME_Q, table frame (measured in sim/probe_reach.py)
+RAND_AMP = (0.6, 0.5, 0.6, 0.6, 0.6, 0.5, 1.0)   # rand_init = 1: half-range of the uniform offset per arm joint (rad)
+RAND_Z_MIN, RAND_Z_MAX = 0.13, 0.55     # random start: TCP height above the table (the cylinder is 8 cm tall)
+RAND_X, RAND_Y = (-0.25, 0.45), 0.40    # random start: TCP stays inside this box of the table frame
 ARM_DAMPING = 30.0
 MAX_DXYZ = 0.04
 MAX_DYAW = 0.35
@@ -93,15 +97,22 @@ class PandaTaskEnvCfg(DirectRLEnvCfg):
     cameras: bool = False
     terminate_on_success: bool = True     # eval: end once success has held; RL training: keep going
     image_size: int = 256
+    front_shift: tuple = (0.0, 0.0)       # 12 Oct (game layer test): front camera moved by this (x, y) in the table frame, rotation unchanged
     front_view: str = "far"               # "near" (5 Oct, user): front camera closer to the workspace, see NEAR_FRONT
     episode_s: float = 0.0                # episode length; 0 = tasks.EPISODE_S[task]
+    # 12 Oct (user: randomise the robot's starting pose instead of always starting from HOME_Q): scale of the random joint offsets drawn at reset
+    # (0 = off, the home pose; 1 = +-0.6 rad on joints 1, 3, 4, 5, +-0.5 on 2 and 6, +-1.0 on 7). Starts with the TCP below RAND_Z_MIN or the hand
+    # pointing away from the table are rejected; the commanded pose is set to where the hand really is, so nothing snaps back to home.
+    rand_init: float = 0.0
 
     episode_length_s = 15.0               # overwritten per task from tasks.EPISODE_S
     decimation = 10
     action_space = 5
     observation_space = 21
     state_space = 0
-    sim: SimulationCfg = SimulationCfg(dt=0.01, render_interval=10)
+    # 10 Oct: a scene with 20 objects per env (the game mixture, 8192 envs) overflowed PhysX's default contact-patch buffer (163840, needed
+    # 196550+ at iteration 0): a larger buffer, no other change (the two-object env never needed it)
+    sim: SimulationCfg = SimulationCfg(dt=0.01, render_interval=10, physx=PhysxCfg(gpu_max_rigid_patch_count=2**20))
     scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1024, env_spacing=6.0, replicate_physics=True)
 
     robot = FRANKA_PANDA_HIGH_PD_CFG.replace(
@@ -131,6 +142,21 @@ class PandaTaskEnvCfg(DirectRLEnvCfg):
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.8, 0.2, 0.001)),
     )
     contact = ContactSensorCfg(prim_path="/World/envs/env_.*/(Red|Blue)", history_length=10)
+    # 12 Oct (game layer z test, VLA_PEDESTAL=1): a fixed grey column under the second object, `pedestal_h` high (a tower of cubes under the base of
+    # the stack); parked out of the scene when pedestal_h = 0. Only for the evals of sim/eval_chains.py --pedestal.
+    if os.environ.get("VLA_PEDESTAL"):
+        ped = RigidObjectCfg(
+            prim_path="/World/envs/env_.*/Pedestal",
+            spawn=sim_utils.CuboidCfg(
+                size=(0.07, 0.07, 0.6),
+                rigid_props=sim_utils.RigidBodyPropertiesCfg(kinematic_enabled=True),
+                collision_props=sim_utils.CollisionPropertiesCfg(),
+                physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=1.0, dynamic_friction=1.0),
+                visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.55, 0.55, 0.58)),
+            ),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=(3.0, 3.0, 0.0)),
+        )
+    pedestal_h: float = 0.0
     # cameras use the OpenGL convention (look along -z, y up); same poses as the MuJoCo prototype
     front_cam = TiledCameraCfg(
         prim_path="/World/envs/env_.*/FrontCam",
@@ -208,6 +234,11 @@ class PandaTaskEnv(DirectRLEnv):
         self.target = RigidObject(self.cfg.target)
         # 8 Oct: more objects (VLA_OBJECTS=multi, sim/envs/multi_env.py) are cfg attributes obj2, obj3, ...; none in the other envs
         self.extra = [RigidObject(getattr(self.cfg, f"obj{i}")) for i in range(2, 8) if hasattr(self.cfg, f"obj{i}")]
+        # 10 Oct: static pieces (never commanded: board pieces, the tower under its top piece) and the supply pad, cfg attributes stat0.. / supply
+        self.statics = [RigidObject(getattr(self.cfg, f"stat{i}")) for i in range(64) if hasattr(self.cfg, f"stat{i}")]
+        self.supply = RigidObject(self.cfg.supply) if hasattr(self.cfg, "supply") else None
+        self.supply2 = RigidObject(self.cfg.supply2) if hasattr(self.cfg, "supply2") else None
+        self.ped = RigidObject(self.cfg.ped) if hasattr(self.cfg, "ped") else None
         self.contact = ContactSensor(self.cfg.contact)
         table = sim_utils.CuboidCfg(
             size=(1.2, 0.9, 0.75),
@@ -229,6 +260,14 @@ class PandaTaskEnv(DirectRLEnv):
             self.scene.rigid_objects[name] = getattr(self, name)
         for i, o in enumerate(self.extra):
             self.scene.rigid_objects[f"obj{i + 2}"] = o
+        for i, o in enumerate(self.statics):
+            self.scene.rigid_objects[f"stat{i}"] = o
+        if self.supply is not None:
+            self.scene.rigid_objects["supply"] = self.supply
+        if self.supply2 is not None:
+            self.scene.rigid_objects["supply2"] = self.supply2
+        if self.ped is not None:
+            self.scene.rigid_objects["ped"] = self.ped
         self.scene.sensors["contact"] = self.contact
         if self.cfg.cameras:
             for name in ["front_cam", "wrist_cam"]:
@@ -236,7 +275,20 @@ class PandaTaskEnv(DirectRLEnv):
                 if name == "front_cam" and self.cfg.front_view == "near":
                     cam_cfg = cam_cfg.replace(offset=TiledCameraCfg.OffsetCfg(
                         pos=NEAR_FRONT[0], rot=_look_at(*NEAR_FRONT), convention="opengl"))
+                if name == "front_cam" and any(self.cfg.front_shift):
+                    o = cam_cfg.offset
+                    cam_cfg = cam_cfg.replace(offset=TiledCameraCfg.OffsetCfg(
+                        pos=(o.pos[0] + self.cfg.front_shift[0], o.pos[1] + self.cfg.front_shift[1], o.pos[2]), rot=o.rot, convention="opengl"))
                 self.scene.sensors[name] = TiledCamera(cam_cfg)
+
+    def set_front_offset(self, off):
+        """12 Oct (game layer test): move the front camera to its home pose + off (n, 3), table-frame metres, rotation unchanged."""
+        cam = self.scene.sensors["front_cam"]
+        base = torch.tensor(NEAR_FRONT[0] if self.cfg.front_view == "near" else (1.35, 0.55, 0.8), device=self.device)
+        rot = cam.data.quat_w_opengl if hasattr(cam.data, "quat_w_opengl") else None
+        if not hasattr(self, "_front_rot"):
+            self._front_rot = cam.data.quat_w_opengl.clone()
+        cam.set_world_poses(self.scene.env_origins + base + off.to(self.device), self._front_rot, convention="opengl")
 
     # ---------- state in the table frame ----------
     def hand_rot(self):
@@ -387,6 +439,26 @@ class PandaTaskEnv(DirectRLEnv):
         """Force the (num_envs, 6) layouts used by the next reset of each env (eval states)."""
         self.forced_layouts = layouts.to(self.device)
 
+    def _random_start(self, env_ids):
+        """A random arm pose for the given envs: (full joint positions, TCP in the table frame, hand yaw). Home + uniform noise, 16 tries per env."""
+        from sim.envs.panda_fk import hand_pose
+        k, n, dev = len(env_ids), 16, self.device
+        base = self.robot.data.default_joint_pos[env_ids].clone()
+        q0 = base[:, self.arm_ids]
+        amp = torch.tensor(RAND_AMP, device=dev) * self.cfg.rand_init
+        cand = (q0[:, None] + (torch.rand(k, n, 7, device=dev) * 2 - 1) * amp).clamp(self.q_low, self.q_high)
+        p, R, yaw = hand_pose(cand.reshape(-1, 7))
+        p = p - torch.tensor(TABLE_ORIGIN, device=dev)
+        ok = ((p[:, 2] > RAND_Z_MIN) & (p[:, 2] < RAND_Z_MAX) & (p[:, 0] > RAND_X[0]) & (p[:, 0] < RAND_X[1]) & (p[:, 1].abs() < RAND_Y)
+              & (R[:, 2, 2] < -0.6)).reshape(k, n)
+        first = ok.float().argmax(-1)
+        rows = torch.arange(k, device=dev)
+        use = ok.any(-1)
+        q_arm = torch.where(use[:, None], cand[rows, first], q0)
+        p_sel, _, yaw_sel = hand_pose(q_arm)
+        base[:, self.arm_ids] = q_arm
+        return base, p_sel - torch.tensor(TABLE_ORIGIN, device=dev), yaw_sel
+
     def _reset_idx(self, env_ids):
         if env_ids is None:
             env_ids = self.robot._ALL_INDICES
@@ -411,6 +483,9 @@ class PandaTaskEnv(DirectRLEnv):
 
         k = len(env_ids)
         q = self.robot.data.default_joint_pos[env_ids]
+        start_tcp = None
+        if self.cfg.rand_init > 0:
+            q, start_tcp, start_yaw = self._random_start(env_ids)
         self.robot.write_joint_state_to_sim(q, torch.zeros_like(q), env_ids=env_ids)
         self.robot.set_joint_position_target(q, env_ids=env_ids)
 
@@ -421,7 +496,12 @@ class PandaTaskEnv(DirectRLEnv):
         self.layout[env_ids] = lay
         origin = self.table_origin[env_ids]
         unit_quat = torch.tensor([1.0, 0, 0, 0], device=self.device).repeat(k, 1)
-        for obj, xy, z in [(self.red, lay[:, 0:2], tasks.HALF_Z[0]), (self.blue, lay[:, 2:4], tasks.HALF_Z[1]),
+        H = self.cfg.pedestal_h
+        if self.ped is not None:
+            pp = origin + torch.cat([lay[:, 2:4], torch.full((k, 1), H - 0.3, device=self.device)], dim=-1) if H > 0 else \
+                self.scene.env_origins[env_ids] + torch.tensor([3.0, 3.0, 0.0], device=self.device)
+            self.ped.write_root_pose_to_sim(torch.cat([pp, unit_quat], dim=-1), env_ids=env_ids)
+        for obj, xy, z in [(self.red, lay[:, 0:2], tasks.HALF_Z[0]), (self.blue, lay[:, 2:4], tasks.HALF_Z[1] + H),
                            (self.target, lay[:, 4:6], 0.001)]:
             pos = origin + torch.cat([xy, torch.full((k, 1), z, device=self.device)], dim=-1)
             obj.write_root_pose_to_sim(torch.cat([pos, unit_quat], dim=-1), env_ids=env_ids)
@@ -429,6 +509,9 @@ class PandaTaskEnv(DirectRLEnv):
 
         self.cmd[env_ids] = torch.tensor(HOME_TCP, device=self.device)
         self.cmd_yaw[env_ids] = 0.0
+        if start_tcp is not None:
+            self.cmd[env_ids] = start_tcp
+            self.cmd_yaw[env_ids] = start_yaw
         self.grip_target[env_ids] = 0.04
         self.hold[env_ids] = 0
         self.reached[env_ids] = False

@@ -40,10 +40,25 @@ NO_PUSH = (5,)                                          # the pillar topples
 STACK_BASES = (0, 1, 3, 4)                              # cube, cylinder, disc, tile have a flat top wide enough to stack on
 # (top, base) pairs the VLA never sees together (the teacher does): brick on disc, cylinder on tile, disc on cube
 HOLDOUT_PAIRS = () if _TT else ((2, 3), (1, 4), (3, 0))
+# 10 Oct (user: ONE teacher and ONE student for every game): VLA_GAME=mix trains on a mixture of scenes (sim/envs/multi_env.py game_spec):
+# the original cube + cylinder scenes, a 3x3 tic-tac-toe BOARD (the target pad on a free square, 0-7 static pieces on the other squares, the piece to
+# move at the supply pad) and a TOWER of alternating disc / tile pieces (the piece to move goes on top). The commands stay pick up X / put X on the
+# target / put X on Y; nothing in the reward, the prompts or the observations names a game.
+GAME = os.environ.get("VLA_GAME", "")
+BOARD_C, PITCH = (0.03, 0.0), 0.09                      # table frame; squares x in {-0.06, 0.03, 0.12}, y in {-0.09, 0, 0.09}: 44-62 cm from the base
+SUPPLY = (0.03, 0.17)                                   # where the piece to move waits (a yellow pad marks it)
+SUPPLY2 = (0.03, -0.17)                                 # 11 Oct: a second pad: the piece to move waits on one of the two (else "take what is on the pad" replaces reading the sentence)
+STATIC_TYPES = (0, 0, 0, 0, 1, 1, 1, 1, 3, 3, 3, 4, 4, 4)     # shapes of the static pieces: 4 cubes, 4 cylinders, 3 discs, 3 tiles (a tower of 6 has 5 under its top)
+N_STATIC = len(STATIC_TYPES) if GAME else 0
 # 6 Oct night (user: "fix the target, it is easier to learn"): VLA_FIXED_TARGET="x,y" puts the target pad at one table-frame position in every
 # layout and every episode (the real clips have one target marker), training and evaluation alike. Default: random, as before.
 _FT = os.environ.get("VLA_FIXED_TARGET", "")
-FIXED_TARGET = tuple(float(v) for v in _FT.split(",")) if _FT else None   # centre height of each object resting on the table
+# 13 Oct (user, tic-tac-toe: "not random squares, some specific places"): a SET of fixed spots, "x1,y1;x2,y2;..." or "board" = the 9 square
+# centres of the tic-tac-toe board (BOARD_C, PITCH); every layout draws one of them. One spot (the old form) behaves exactly as before.
+if _FT == "board":
+    _FT = ";".join(f"{BOARD_C[0] + i * PITCH:.2f},{BOARD_C[1] + j * PITCH:.2f}" for i in (-1, 0, 1) for j in (-1, 0, 1))
+FIXED_TARGETS = [tuple(float(v) for v in p.split(",")) for p in _FT.split(";")] if _FT else []
+FIXED_TARGET = FIXED_TARGETS[0] if FIXED_TARGETS else None   # centre height of each object resting on the table
 STAGES = {
     "push": ["reach", "push"],
     "lift": ["reach", "grasp", "lift"],
@@ -83,7 +98,8 @@ def sample_layouts(task, n, gen):
 
     red, blue, tgt = uni(lo, hi), uni(lo, hi), uni(lo, hi)
     if FIXED_TARGET:
-        tgt = torch.tensor(FIXED_TARGET, dtype=torch.float32).expand(n, k, 2).clone()
+        spots = torch.tensor(FIXED_TARGETS, dtype=torch.float32)
+        tgt = spots[torch.randint(len(spots), (n, k), generator=gen)] if len(spots) > 1 else spots[0].expand(n, k, 2).clone()
     if task == "push" and not FIXED_TARGET:   # push target further out than the cube
         red = uni(torch.tensor(PUSH_RED_REGION[0]), torch.tensor(PUSH_RED_REGION[1]))
         tgt = red + uni(torch.tensor([0.08, -0.08]), torch.tensor([0.15, 0.08]))

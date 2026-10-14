@@ -86,7 +86,7 @@ def main():
                 while True:
                     try:
                         msg = conn.recv()
-                    except EOFError:
+                    except (EOFError, ConnectionResetError):     # a client that was killed resets the connection
                         break
                     h, w = msg["hw"]
                     imgs = {}

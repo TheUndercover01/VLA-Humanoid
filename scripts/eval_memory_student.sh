@@ -17,7 +17,7 @@ until grep -q "serving" $C/server_${NAME}_$CK.log 2>/dev/null || ! kill -0 $SERV
 kill -0 $SERVER 2>/dev/null || { log "$NAME: server failed, see $C/server_${NAME}_$CK.log"; exit 1; }
 for ch in $CHAINS; do
   exec 9>$C/isaac_eval.lock; flock 9
-  CUDA_VISIBLE_DEVICES=0 timeout 1800 scripts/run_isaac.sh $C/mem_${NAME}_${CK}_$ch.log sim/eval_chains.py --headless --device cuda:0 --keypoints \
+  CUDA_VISIBLE_DEVICES=${ISAAC_GPU:-0} timeout 1800 scripts/run_isaac.sh $C/mem_${NAME}_${CK}_$ch.log sim/eval_chains.py --headless --device cuda:0 --keypoints \
     --hold_fix --chain $ch --val --policy vla --vla_port $PORT --replan 1 --learned_done $FLAGS --whole_prompt \
     --name ${NAME}_mem --out runs/eval/${NAME}_${CK}_mem_$ch\_val.csv
   flock -u 9; exec 9>&-

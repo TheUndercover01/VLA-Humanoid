@@ -56,6 +56,16 @@ parser.add_argument("--perturb_after", type=int, default=10)
 parser.add_argument("--unmark", type=int, default=0, help="knock / drop / move: at the disturbance, erase the policy's last N done marks "
                                                           "(done -> not done at inference); premark: N commands marked done from the start")
 parser.add_argument("--ordered_hold",type=int, default=5, help="ticks (0.1 s) a command's outcome must hold to count in the in-order score (default 5 = 0.5 s)")
+parser.add_argument("--progress", action="store_true", help="13 Oct: with --marks, the command being worked on also carries \"(in progress)\" (build_dataset --progress)")
+parser.add_argument("--stack_ztol", type=float, default=0.015, help="14 Oct: scoring, how far (m) a put-down on the other object may be above/below its resting height (0.015 strict; 0.0214 = the teacher's done check)")
+parser.add_argument("--xy_tol", type=float, default=0.03, help="14 Oct: scoring, how far (m) in xy a put-down may be from the target / the other object's centre")
+parser.add_argument("--target_z", type=float, default=0.045, help="14 Oct: scoring, a put-down on the target counts below this height (m)")
+parser.add_argument("--lift_rise", type=float, default=0.05, help="14 Oct: scoring, how high (m) a pick-up must raise the object")
+parser.add_argument("--lenient_hold", type=int, default=5, help="14 Oct: scoring, ticks (0.1 s) the end result must hold for lenient")
+parser.add_argument("--place_tol", type=float, default=0.0, help="14 Oct: teacher env, put-down done tolerance (see keypoint_env)")
+parser.add_argument("--place_hold", type=int, default=0, help="14 Oct: teacher env, put-down done hold ticks")
+parser.add_argument("--done_trace", action="store_true", help="13 Oct: write every env's done flag, its own mark count and the sim's in-order command index per tick to <out>.trace.csv")
+parser.add_argument("--rearm", type=float, default=None, help="13 Oct: after a mark, the done flag must first drop below this before the next mark can be counted (default off)")
 parser.add_argument("--done_thresh", type=float, default=0.85)       # 7 Oct (user): 0.85 / 5 ticks; the first evals used 0.5 / 3
 parser.add_argument("--done_hold", type=int, default=5, help="consecutive ticks the done flag must stay above the threshold")
 parser.add_argument("--val", action="store_true", help="validation layouts (seed 4321) instead of the eval states")
@@ -72,7 +82,14 @@ parser.add_argument("--state_history", action="store_true", help="vla: state = [
 parser.add_argument("--history", type=int, default=0, help="vla: send the front image this many steps back (build_dataset --history)")
 parser.add_argument("--action_filter", type=float, default=0.0, help="RL teacher trained with --action_filter (not for a VLA, which outputs the executed action)")
 parser.add_argument("--derived", action="store_true", help="9 Oct: per-skill rest speed and hold time from the clips (needs keypoint_ref_real_straight_v2.npz)")
-parser.add_argument("--ref", default=None, help="default: the stand-in reference of the env")
+parser.add_argument("--ref", default="data/processed/keypoint_ref_real_straight.npz",
+                    help="10 Oct: default the real-clip template (was the env's stand-in one, which some teacher rows were measured with)")
+parser.add_argument("--hand_leg", action="store_true", help="10 Oct: the hand's straight leg to the object in the reward (+4 teacher observations)")
+parser.add_argument("--rand_init", type=float, default=0.0, help="12 Oct: scale of the random joint offsets of the arm's starting pose (0 = home pose)")
+parser.add_argument("--shift", default="0,0", help="12 Oct game layer test: dx,dy. The whole scene (cubes, target) is moved by this in the table frame, the front camera "
+                    "moves with it and the state told to the VLA is shifted back, so the policy sees the scene where it was trained")
+parser.add_argument("--place_shift", default=None, help="12 Oct: dx,dy,dz used instead of --shift while the VLA is on a put-down command (the camera moves at the switch)")
+parser.add_argument("--pedestal", type=float, default=0.0, help="12 Oct: height (m) of a column under the second object (needs VLA_PEDESTAL=1)")
 parser.add_argument("--bank", default=None)
 parser.add_argument("--video", default=None)
 parser.add_argument("--video_envs", default="0,1")
@@ -123,13 +140,13 @@ def outcome(chain, s, start):
     k, cube, dest = chain[-1]
     me, other = (s["blue"], s["red"]) if cube == B else (s["red"], s["blue"])
     if k == "pick-lift":
-        return me[:, 2] - start[:, 2] > 0.05
+        return me[:, 2] - start[:, 2] > args.lift_rise
     if dest == OTHER:
-        return ((me[:, :2] - other[:, :2]).norm(dim=-1) < 0.03) & ((me[:, 2] - other[:, 2] - (tasks.HALF_Z[0] + tasks.HALF_Z[1])).abs() < 0.015)
-    return ((me[:, :2] - s["target"][:, :2]).norm(dim=-1) < 0.03) & (me[:, 2] < 0.045)
+        return ((me[:, :2] - other[:, :2]).norm(dim=-1) < args.xy_tol) & ((me[:, 2] - other[:, 2] - (tasks.HALF_Z[0] + tasks.HALF_Z[1])).abs() < args.stack_ztol)
+    return ((me[:, :2] - s["target"][:, :2]).norm(dim=-1) < args.xy_tol) & (me[:, 2] < args.target_z)
 
 
-LENIENT_HOLD = 5          # ticks (0.5 s) the outcome must hold
+LENIENT_HOLD = args.lenient_hold          # ticks (0.1 s) the outcome must hold (default 5 = 0.5 s)
 
 
 def outcome_cmd(cmd, s, start):
@@ -150,6 +167,8 @@ KP_CHAINS = {
     "swap": (KP_BLUE_ON_RED, "c2", ""),
     "unstack": (KP_STACK + KP_TO_TARGET, "c2", "c1"),
     "restack": (KP_STACK + KP_TO_TARGET + KP_BLUE_ON_RED, "c2", ""),
+    # 14 Oct (user: a chain of 8): cube onto the cylinder, onto the target, back onto the cylinder, back onto the target
+    "restack8": (KP_STACK + KP_TO_TARGET + KP_STACK + KP_TO_TARGET, "c2", "c1"),
 }
 
 # 7 Oct evening, "change of mind": (old chain, commands kept j, new commands, time in s). At that time the instruction becomes
@@ -226,14 +245,16 @@ def main():
     else:
         layouts = torch.load(STATES / f"{layout_task}.pt")["layouts"]
     layouts = layouts[:args.num_envs]
+    SHIFT = tuple(float(v) for v in args.shift.split(","))
     if args.chain == "push_cyl":      # the push layouts put the pushed object in the first slot: put the cylinder (second slot) there
         layouts = torch.cat([layouts[:, 2:4], layouts[:, 0:2], layouts[:, 4:6]], -1)
+    layouts = layouts + torch.tensor(SHIFT * 3)
     n = len(layouts)
     Cfg, Env = (PandaKeypointEnvCfg, PandaKeypointEnv) if args.keypoints else (PandaSkillEnvCfg, PandaSkillEnv)
     extra_s = {"knock": 15, "drop": 10, "move": 5}.get(args.perturb, 0)        # time to redo the work after a disturbance
     cfg = Cfg(task=layout_task, final_check=check, episode_s=SECONDS_PER_COMMAND * max(len(chain), len(old_chain) if args.edit else 0) + 5 + extra_s,
               cameras=args.video is not None or args.policy == "vla",
-              image_size=256 if args.policy == "vla" else 384, front_view=args.front_view)       # the VLA sees the image size it was trained on
+              image_size=256 if args.policy == "vla" else 384, front_view=args.front_view, front_shift=SHIFT, pedestal_h=args.pedestal)       # the VLA sees the image size it was trained on
     cfg.ref_path = args.ref or cfg.ref_path
     if args.perturb != "none":
         cfg.terminate_on_success = False      # the episode runs on after the work is done (scored by the lenient / in-order checks below)
@@ -242,6 +263,9 @@ def main():
         cfg.knock_penalty, cfg.rest_speed = args.knock_penalty, args.rest_speed
         cfg.action_filter = args.action_filter
         cfg.derived = args.derived
+        cfg.hand_leg = args.hand_leg
+        cfg.place_tol, cfg.place_hold = args.place_tol, args.place_hold
+    cfg.rand_init = args.rand_init
     cfg.bank_path = args.bank or cfg.bank_path
     cfg.scene.num_envs = n
     cfg.sim.device = args.device
@@ -258,6 +282,10 @@ def main():
         policy = CommandVLAPolicy(args.vla_port, replan=args.replan, whole=whole, history=args.history,
                                   state_history=args.state_history, learned_done=(old_chain if args.edit else chain) if args.learned_done else None, memory=args.memory_done, marks=args.marks, k_norm=args.k_norm, vote=args.done_vote, recheck=[float(x) if i == 2 else int(x) for i, x in enumerate(args.recheck.split(','))] if args.recheck else None,
                                   done_thresh=args.done_thresh, done_hold=args.done_hold)
+        policy.rearm = args.rearm
+        policy.progress = args.progress
+        policy.shift = SHIFT
+        policy.place_shift = tuple(float(v) for v in args.place_shift.split(",")) if args.place_shift else None
     else:
         policy = RslPolicy(args.policy[4:], env)
     if args.perturb != "none":
@@ -333,6 +361,7 @@ def main():
     snap = {"red": s0["red"].clone(), "blue": s0["blue"].clone()}
     # psnap[key][i, j] = that object's position when env i's pointer arrived at command j (kept when a mark is erased and re-made)
     diag, pstage = [], torch.zeros(n, dtype=torch.long, device=env.device)
+    trace = []
     psnap = {key: s0[key][:, None].repeat(1, len(chain) + 1, 1).clone() for key in ("red", "blue")}
     # perturbation study (9 Oct): disturbed = when (tick), recovered = the end result held 0.5 s after the disturbance
     dist_t = torch.full((n,), -1, dtype=torch.long, device=env.device)
@@ -350,6 +379,11 @@ def main():
         if args.edit and step == round(edit_t * 10):
             policy.chain = chain      # the new sentence from now on; policy.stage (its own count) is kept
         action, _ = policy.act(env)
+        if args.done_trace and getattr(policy, "stage", None) is not None and hasattr(policy, "done_p"):
+            cur = env.cur.cpu().tolist()
+            for i, (k_, p_) in enumerate(zip(policy.stage.tolist(), policy.done_p.tolist())):
+                if not captured[i]:
+                    trace.append((i, step, k_, cur[i], round(p_, 3)))
         if args.done_diag and getattr(policy, "stage", None) is not None:
             stg = policy.stage.to(env.device)
             moved = (stg > pstage) & ~captured
@@ -359,7 +393,19 @@ def main():
                     j = int(pstage[i]); cmd = chain[j]
                     si = {k_: v[i:i + 1] for k_, v in sdp.items() if torch.is_tensor(v)}
                     st = (psnap["blue"] if cmd[1] == B else psnap["red"])[i:i + 1, j]
-                    diag.append({"env": i, "tick": step, "command": j, "skill": cmd[0], "ok": int(outcome_cmd(cmd, si, st)[0])})
+                    me, ot = (si["blue"], si["red"]) if cmd[1] == B else (si["red"], si["blue"])
+                    if cmd[0] == "place-down":   # 14 Oct: where the object really is at the mark (cm): height above its resting pose, xy off the spot
+                        if cmd[2] == OTHER:
+                            gap_z = float(me[0, 2] - ot[0, 2] - (tasks.HALF_Z[0] + tasks.HALF_Z[1]))
+                            off = float((me[0, :2] - ot[0, :2]).norm())
+                        else:
+                            gap_z = float(me[0, 2] - tasks.HALF_Z[cmd[1]])
+                            off = float((me[0, :2] - si["target"][0, :2]).norm())
+                    else:
+                        gap_z, off = float(me[0, 2] - st[0, 2]), float("nan")
+                    diag.append({"env": i, "tick": step, "command": j, "skill": cmd[0], "ok": int(outcome_cmd(cmd, si, st)[0]),
+                                 "gap_z_cm": round(gap_z * 100, 1), "off_xy_cm": round(off * 100, 1), "hand_z_cm": round(float(si["tcp"][0, 2]) * 100, 1),
+                                 "grip": round(float(si["grip"][0]) / 0.08, 2)})
                 for i in moved.nonzero().squeeze(-1).tolist():
                     for key in ("red", "blue"):
                         psnap[key][i, int(stg[i])] = sdp[key][i]
@@ -368,7 +414,8 @@ def main():
                 j = int(stg[i]); cmd = chain[j]
                 si = {k_: v[i:i + 1] for k_, v in env.state().items() if torch.is_tensor(v)}
                 st = (psnap["blue"] if cmd[1] == B else psnap["red"])[i:i + 1, j]
-                diag.append({"env": i, "tick": step, "command": j, "skill": cmd[0], "ok": -1 - int(outcome_cmd(cmd, si, st)[0])})
+                diag.append({"env": i, "tick": step, "command": j, "skill": cmd[0], "ok": -1 - int(outcome_cmd(cmd, si, st)[0]),
+                             "gap_z_cm": float("nan"), "off_xy_cm": float("nan"), "hand_z_cm": float("nan"), "grip": float("nan")})
             pstage = stg.clone()
         env.step(action)
         sd = env.state()
@@ -454,6 +501,11 @@ def main():
     print(f"{name} on {args.chain} ({len(chain)} commands): success {succ}/{n}, mean commands done {mean_done:.2f}, "
           f"failures at {dict(sorted(fails.items()))}, lenient {sum(r['lenient'] for r in rows)}/{n}, "
           f"in-order {sum(r['ordered'] for r in rows)}/{n} (mean commands in order {sum(r['ordered_done'] for r in rows) / n:.2f}/{len(chain)}) -> {out}", flush=True)
+    if args.done_trace and trace:
+        with open(str(out) + ".trace.csv", "w", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["env", "tick", "marks", "sim_cmd", "done_p"])
+            w.writerows(trace)
     if args.done_diag and diag:
         retr = [r for r in diag if r["ok"] < 0]
         diag = [r for r in diag if r["ok"] >= 0]
