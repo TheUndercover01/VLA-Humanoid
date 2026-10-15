@@ -35,8 +35,8 @@ button.b:disabled{opacity:.4;cursor:default;box-shadow:none}
 .small{font-size:.8rem;color:var(--muted)}
 </style></head><body><main>
 <h1>Tic-tac-toe against the robot</h1>
-<p class="lead">You are <b style="color:var(--bold)">O</b>, the robot is <b style="color:var(--warm)">X</b>. On its turn the game picks a square and moves the green pad there; the robot
-only hears <i>"pick up the cube, then put the cube on the target"</i> and has to actually place the cube with its camera-only policy. If the cube doesn't end up on the square, it loses that turn.</p>
+<p class="lead">You are <b style="color:var(--bold)">O</b>, the robot is <b style="color:var(--warm)">X</b>. Click a square and your O appears on the table. On its turn the game picks a square and moves the green pad there;
+the robot only hears <i>"pick up the cube, then put the cube on the target"</i> and has to really place the cube with its camera-only policy. When it lands, the cube becomes an X on the board. If it misses the square, it loses that turn.</p>
 <div class="pg">
   <div class="box">
     <img id="view" class="view" alt="the robot's two cameras">
@@ -48,7 +48,7 @@ only hears <i>"pick up the cube, then put the cube on the target"</i> and has to
     <div class="row"><span>time on this move</span><b id="time">-</b></div>
   </div>
   <div class="box">
-    <div class="lab">The board (as seen from the front camera)</div>
+    <div class="lab">The board (as on the table, seen from the front camera)</div>
     <div id="board" class="board"></div>
     <div id="note" class="note">Connecting to the robot...</div>
     <div class="lab">New game</div>
