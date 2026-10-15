@@ -29,6 +29,8 @@ Training starts (cfg.max_chain commands per episode): 60% from the clips' states
 stacked tower, 30% at home. cfg.bank_p sets the first share (0 = no scripted mid-skill states: 10% towers,
 90% at home). Evaluation (sim/eval_chains.py --keypoints) sets one fixed chain.
 """
+import os
+
 import numpy as np
 import torch
 
@@ -144,7 +146,14 @@ class PandaKeypointEnv(PandaTaskEnv):
             cfg.observation_space += 4         # 76 -> 80 (multi_env: 103 -> 107)
         if cfg.hand_leg and not self.hand_obs_in_cfg:
             cfg.observation_space += 4         # the hand leg: offset to its next waypoint, progress
+        # 15 Oct (tic-tac-toe on the table): VLA_TTT_TILES=1 draws flat X / O pieces (visual only) on random squares at every reset
+        tiles = os.environ.get("VLA_TTT_TILES") == "1"
+        if tiles:
+            from sim.envs import ttt_tiles
+            ttt_tiles.add_assets(cfg.scene)
         super().__init__(cfg, render_mode, **kwargs)
+        self.tiles = ttt_tiles.Tiles(self) if tiles else None
+        self._tile_rng = np.random.default_rng(int(os.environ.get("VLA_TTT_TILES_SEED", "0")))
         n, dev = self.num_envs, self.device
         self.a_filt = torch.zeros(n, 4, device=dev)
         self.a_exec = torch.zeros(n, 5, device=dev)
@@ -633,3 +642,6 @@ class PandaKeypointEnv(PandaTaskEnv):
                     pose = torch.cat([tcp[m] + self.table_origin[e[m]], quat[m]], -1)
                     obj.write_root_pose_to_sim(pose, env_ids=e[m])
                     obj.write_root_velocity_to_sim(torch.zeros(int(m.sum()), 6, device=dev), env_ids=e[m])
+        if getattr(self, "tiles", None) is not None and self.forced_layouts is not None:
+            for i in env_ids.tolist():
+                self.tiles.randomize(i, self.forced_layouts[i, 4:6].cpu().numpy(), self._tile_rng)

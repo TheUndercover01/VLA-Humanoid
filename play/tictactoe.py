@@ -42,8 +42,9 @@ import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
 
+
 from play.games import ttt  # noqa: E402
-from sim.envs import tasks  # noqa: E402
+from sim.envs import tasks, ttt_tiles  # noqa: E402
 from sim.envs.keypoint_env import PandaKeypointEnv, PandaKeypointEnvCfg  # noqa: E402
 from sim.envs.skill_env import NONE, TARGET  # noqa: E402
 from vla.prompts import command_prompt, marked_sentence  # noqa: E402
@@ -83,6 +84,10 @@ def main():
     cfg = PandaKeypointEnvCfg(task="c1", cameras=True, image_size=256, terminate_on_success=False, episode_s=1e6, hold_fix=True,
                               action_filter=0.0, max_chain=2)
     cfg.scene.num_envs = args.slots
+
+    BOARD = os.environ.get("TTT_BOARD", "1") == "1"   # TTT_BOARD=0: no board in the scene (tests)
+    if BOARD:
+        ttt_tiles.add_assets(cfg.scene)                 # the grid and the flat X / O pieces (sim/envs/ttt_tiles.py)
     cfg.sim.device = args.device
     env = PandaKeypointEnv(cfg)
     dev, n = env.device, args.slots
@@ -97,6 +102,17 @@ def main():
         z = torch.zeros(n, dtype=torch.bool, device=dev)
         return z, z.clone()
     env._get_dones = no_reset
+    # 15 Oct (user: "a scene where tic-tac-toe is done"): the board drawn IN the simulator, so the cameras see it: grid lines, a flat
+    # orange X for every robot move, a flat blue O for every human move. Visual only (no collision, 3 mm high): the robot still only
+    # ever handles one cube; the X tile replaces the cube's square once the move counts.
+    tiles = ttt_tiles.Tiles(env) if BOARD else None
+    dirty = [True]                         # the board drawing is redone on the sim thread (USD) when this is set
+
+    def draw():
+        dirty[0] = False
+        for i in range(n if BOARD else 0):
+            tiles.show(i, slots[i].board)
+
     conn = Client(("localhost", args.vla_port), authkey=AUTHKEY)
     slots = [Slot() for _ in range(n)]
     lock, inbox = threading.Lock(), queue.Queue()
@@ -148,6 +164,7 @@ def main():
         placed = s.ok_hold >= HOLD_OK
         if placed:
             s.board[s.sq] = "X"
+            dirty[0] = True
             s.note = "The robot placed its X. Your move."
         else:
             s.note = ("The robot ran out of time" if timed_out else "The robot thinks it placed the cube, but it is not on the square") + \
@@ -163,6 +180,7 @@ def main():
         if s.phase != "human" or not isinstance(sq, int) or not 0 <= sq < 9 or s.board[sq]:
             return
         s.board[sq] = "O"
+        dirty[0] = True
         if not finish(i, s):
             robot_turn(i)
 
@@ -203,6 +221,7 @@ def main():
                         waiting.pop(0)
                         slots[mine].owner, slots[mine].claimed = sid, time.time()
                         slots[mine].new_game("normal", True)
+                        dirty[0] = True
                     pos = waiting.index(sid) + 1 if sid in waiting else 0
                 if mine is None:
                     await sock.send_text(json.dumps({"type": "queue", "position": pos}))
@@ -248,6 +267,7 @@ def main():
                     s = slots[i]
                     if kind == "new" and s.chain is None:
                         s.new_game(msg.get("difficulty"), msg.get("first", "human") != "robot")
+                        dirty[0] = True
                         if s.phase == "robot":
                             robot_turn(i)
                     elif kind == "move" and s.chain is None:
@@ -256,6 +276,8 @@ def main():
                     slots[i].note = f"error: {e}"
                     print("ttt error:", repr(e), flush=True)
         with lock:
+            if dirty[0]:
+                draw()
             running = [i for i, s in enumerate(slots) if s.chain is not None and s.settle < 0]
             prompts = [marked_sentence([command_prompt(*c) for c in slots[i].chain], slots[i].stage) for i in running]
         actions = hold.clone()
