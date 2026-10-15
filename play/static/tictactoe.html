@@ -35,8 +35,7 @@ button.b:disabled{opacity:.4;cursor:default;box-shadow:none}
 .small{font-size:.8rem;color:var(--muted)}
 </style></head><body><main>
 <h1>Tic-tac-toe against the robot</h1>
-<p class="lead">You are <b style="color:var(--bold)">O</b>, the robot is <b style="color:var(--warm)">X</b>. Click a square and your O appears on the table. On its turn the game picks a square and moves the green pad there;
-the robot only hears <i>"pick up the cube, then put the cube on the target"</i> and has to really place the cube with its camera-only policy. When it lands, the cube becomes an X on the board. If it misses the square, it loses that turn.</p>
+<p class="lead">You are <b style="color:var(--bold)">O</b>, the robot is <b style="color:var(--warm)">X</b>. The robot has to physically place its cube; if it misses the square, it loses the turn.</p>
 <div class="pg">
   <div class="box">
     <img id="view" class="view" alt="the robot's two cameras">
@@ -56,7 +55,7 @@ the robot only hears <i>"pick up the cube, then put the cube on the target"</i> 
       <select id="diff"><option value="easy">easy</option><option value="normal" selected>normal</option><option value="hard">hard (never loses on purpose)</option></select>
       <button class="b" id="newh">You start</button><button class="b" id="newr">Robot starts</button>
     </div>
-    <p class="small">The difficulty only sets how often the game picks the best square for the robot. Whether it then manages to place the cube is up to the robot.</p>
+    
   </div>
 </div>
 </main>

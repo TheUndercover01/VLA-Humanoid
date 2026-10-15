@@ -36,9 +36,7 @@ button.bad{border-color:var(--warm);color:var(--warm)}
 details{margin-top:1rem;font-size:.9rem}summary{cursor:pointer;font-weight:700}
 </style></head><body><main>
 <h1>Sabotage the robot</h1>
-<p class="lead">The robot is a vision-language-action model. It reads one sentence and keeps its own place in it: when it thinks a step is
-finished it writes <b>(done)</b> after that step, and it stops when every step is marked. You get one sabotage per round. Win the round if the
-task is not really done when the robot stops, or when time runs out. Best of 5.</p>
+<p class="lead">The robot marks each step <b>(done)</b> and stops when all are marked. One sabotage per round: win if the task isn't really done when it stops. Best of 5.</p>
 <div class="pg">
   <div class="box">
     <img id="view" class="view" alt="the robot's two cameras">
@@ -64,9 +62,7 @@ task is not really done when the robot stops, or when time runs out. Best of 5.<
     <div id="note" class="note">Connecting to the robot...</div>
     <ul id="log" class="log"></ul>
     <details><summary>How to win (spoilers)</summary>
-      <p>The robot only looks at its cameras and its sentence. It sees a moved object and goes after it, so a sabotage early in a step is
-      often survived. Its memory is the weak spot: once a step carries (done) it never goes back. Watch the yellow marks and the signal bar,
-      and think about what a mark means at the moment you strike.</p></details>
+      <p>Once a step is marked (done), it never goes back to it.</p></details>
   </div>
 </div>
 </main>
