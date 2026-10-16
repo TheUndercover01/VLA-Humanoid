@@ -155,7 +155,8 @@ def main():
     bar = rest[:rest.index('<main class="paper">')]
     foot = rest[rest.index('  <footer class="site-footer paper-foot">'):]
     header = (f'<main class="paper">\n  <header class="paper-head">\n    <h1 class="paper-title">{title}</h1>\n'
-              f'    <p class="paper-sub">{sub}<i>{q}</i></p>\n    <p class="paper-authors"><b>Ayush Deshmukh</b></p>\n  </header>\n\n')
+              f'    <p class="paper-sub">{sub}<i>{q}</i></p>\n    <p class="paper-authors"><b>Ayush Deshmukh</b></p>\n'
+              '    <div class="paper-links"><a href="https://github.com/TheUndercover01/VLA-Humanoid" target="_blank" rel="noopener">Code (GitHub)</a></div>\n  </header>\n\n')
     Path(a.page).write_text(head + bar + header + html + "\n" + foot)
     print(f"wrote {a.page}: {len(re.findall('<video', html))} videos, {len(re.findall('<h2', html))} sections")
 
