@@ -20,23 +20,23 @@ Nothing splits it up, and the simulator never tells the policy which command it'
 
 ## Results
 
-Each row is one sentence, tried on 100 table layouts the model never saw. A run counts only if the simulator saw every command done, one after the other. One step is one command: "put the cube on the target" is two steps, because the robot has to pick it up first.
+Success rate (%) over 100 held-out table layouts per task. A run succeeds only if the simulator registers every command of the sentence as completed, in order (§3).
 
-| The sentence asks the robot to... | Steps | Robot (two cameras + the sentence) | Teacher (exact positions, told the current step) |
+| Commands in the sentence | # | Student (2 RGB cameras + sentence) | Teacher (privileged state, told the current command) |
 | :--- | :---: | ---: | ---: |
-| pick up the cube | 1 | 94 | 100 |
-| pick up the cylinder | 1 | 59 | 100 |
-| push the cube to the target | 1 | 59 | 100 |
-| put the cube on the target | 2 | 97 | 100 |
-| put the cylinder on the target | 2 | 77 | 100 |
-| put the cube on the cylinder | 2 | 96 | 100 |
-| put the cylinder on the cube | 2 | 81 | 100 |
-| push the cylinder to the target, then stack the cube on it | 3 | 62 | 94 |
-| **stack the cube on the cylinder, then move the cube to the target** | **4** | **81** | 100 |
-| **the same, then stack the cylinder on the cube (the example above)** | **6** | **40** | 94 |
-| stack the cube on the cylinder and move it to the target, twice | 8 | 0 | 100 |
+| pick up cube | 1 | 94 | 100 |
+| pick up cylinder | 1 | 59 | 100 |
+| push cube to target | 1 | 59 | 100 |
+| pick up cube → place on target | 2 | 97 | 100 |
+| pick up cylinder → place on target | 2 | 77 | 100 |
+| pick up cube → place on cylinder | 2 | 96 | 100 |
+| pick up cylinder → place on cube | 2 | 81 | 100 |
+| push cylinder to target → pick up cube → place on cylinder | 3 | 62 | 94 |
+| **pick up cube → place on cylinder → pick up cube → place on target** | **4** | **81** | 100 |
+| **the 4 above → pick up cylinder → place on cube** (the example sentence) | **6** | **40** | 94 |
+| the 4 above, twice | 8 | 0 | 100 |
 
-Every task with three or more steps is longer than anything in training. Final model: `ours_cyl_marks_nolift`.
+Training episodes contain at most 2 commands; every row with 3 or more is out of distribution in length. Final model: `ours_cyl_marks_nolift`.
 
 <p align="center">
   <img src="results/site_media/unstack_4of4.gif" alt="Four steps done in order" width="49%">
@@ -74,11 +74,14 @@ The question: if a robot is only ever shown single skills, can it carry out a mu
   <img src="results/site_media/real_clip_to_template.gif" alt="A phone clip with tracked markers next to the template the reward uses" width="100%">
 </p>
 
-The reward only looks at the object. Eight points on it have to follow the skill's path from where the object starts to where the command wants it, and the robot is paid for progress along that path. The path comes from the clips: how high a pick-up goes (about 20 cm), where a put-down ends, which way a push goes and how much the object turns. The 3 cm tolerance around it is how much my own clips wander. What a clip can't tell you I set by hand: "finished" means within about 2 cm of the goal and almost still (under 0.1 m/s) for 0.3 s, plus a small cost per step and a bonus per finished command.
+Dense, object-centric keypoint reward. The 8 corner keypoints of the commanded object are tracked against a per-skill reference trajectory (start → goal), and the reward is the keypoints' progress along it inside a 3 cm tube (3 cm ≈ the median deviation of my clips from their mean path). Taken from the clips: lift height (≈20 cm), place height, push direction, allowed yaw change. Set by hand: the completion test (keypoint error < ≈2 cm, object speed < 0.1 m/s, held 0.3 s), a per-step time penalty and a per-command completion bonus. There is no grasp term.
 
-Two additions were needed. A reward on the object alone gives the arm nothing until it happens to touch the object (one run learned nothing in 504 iterations), so the reward also has a straight path from the gripper to the object, and every episode starts from a random arm pose. With that, the teacher learned to "push" by picking the cube up and carrying it (85 of 100 pushes); a small penalty for lifting during a push stopped it (0 of 100). That is the "no-lift" in the model's name.
+Two changes on top of that:
 
-Hand-written rewards per task were tried first and every one got gamed (see 4.5). A reward on the object's path doesn't care how the object is held, and the same reward works for any combination of skills.
+- **Exploration.** With an object-only reward the signal is zero until first contact; a run from the home pose learned nothing in 504 iterations. I prepend a gripper → object leg (straight-line reference from the TCP to the object centre, same 3 cm tube) and randomize the initial arm configuration every episode.
+- **Reward hacking.** The teacher then solved *push* by grasp-and-carry (85 of 100 push episodes lifted the object > 3 cm). A lift penalty that is active only during push commands removed it (0 of 100). This is the "no-lift" in the model name.
+
+Per-task hand-written rewards were tried first and all were exploited (§4.5). The keypoint reward is embodiment-agnostic and shared across every combination of skills.
 
 ### 2.3 RL teacher
 
