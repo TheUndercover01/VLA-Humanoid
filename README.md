@@ -104,6 +104,8 @@ Two changes on top of that:
 
 Before this reward I tried writing a separate reward by hand for each task, and the RL policy found a loophole in every one. Rewarding grasping and carrying made it open and close the gripper right at the release threshold to collect both rewards, without ever finishing. Rewarding distance to the goal made it push the cube onto the target instead of lifting it (see [What didn't work](#45-what-didnt-work)). The keypoint reward uses the same formula for every command; only the template changes. There are three templates, one per skill (push, pick up, put down), each measured from the clips. The current command picks the template and fills in the rest: *put the cube on the cylinder* uses the put-down template, applied to the cube, ending on top of the cylinder. Chaining commands just switches templates. It only scores where the object goes, so it doesn't depend on the robot's body.
 
+**Which command can follow which.** The reward scores only the current command, so the order has to come from how the episodes are sampled. A training episode starts with a pick-up or a push. The second command follows a fixed rule: after *pick up X* comes *put X down* (on the target or on the other object); after a put-down or a push comes a pick-up. So the teacher never sees two pushes, a push after a pick-up, or a put-down of something it isn't holding. The long evaluation sentences and the sentence builder in the games follow the same rules. The random commands padded into training sentences don't, but they are never carried out.
+
 ### 2.3 RL teacher
 
 A Franka Panda in Isaac Lab, PPO with 16,384 simulated robots in parallel, 1000 iterations. The teacher sees the exact object positions, the next point on the path and the current command. Each episode has one or two commands, so it learns every skill and the handoff between two of them: finish, notice it's finished, start the next one from exactly that state.
@@ -229,6 +231,7 @@ Of 100 runs, the failures stop at step 5, picking up the cylinder (25), step 4 (
 - **The student is 3–54 points behind its teacher** on every task. The teacher sees the true object state; the student has two cameras.
 - **Not every part of the reward comes from the clips.** The completion thresholds, time penalty, completion bonus and the gripper→object leg are set by hand. So is the no-lift penalty on push commands: the clips never show a push turning into a lift, but nothing in them says "don't lift" either, so I added it by hand after the teacher learned to grasp and carry instead of pushing.
 - **One scene, in simulation.** One cube, one cylinder, a fixed target, two fixed cameras. Anything new on the table hurts until it's in the data.
+- **Invalid sentences aren't rejected.** Nothing checks that a sentence makes physical sense; *put the cube on the target* with nothing in the hand was never tested.
 - **The tic-tac-toe robot** in the games is a separate fine-tune, not the final model.
 
 ## 6 · Future work
