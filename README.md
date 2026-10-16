@@ -4,49 +4,54 @@
   <img src="results/site_media/restack_6of6.gif" alt="A Franka arm carries out six commands from one sentence, in order" width="70%">
 </p>
 
-I filmed single skills on my phone (push, pick up, put down), turned the clips into an RL reward, trained a teacher in Isaac Lab and distilled it into SmolVLA (450M). The VLA gets one sentence with several commands and works through them from two cameras, marking each finished command with "(done)". It never trained on more than two commands in a row.
+I filmed myself doing single skills on my phone (pushing, picking up, putting down), turned those clips into a reward, trained a robot in simulation with RL, and then taught a vision-language-action model (SmolVLA, 450M) to copy it. The final model gets one sentence with several commands and works through them using only two cameras. It never trained on more than two commands in a row.
+
+For example, it gets this sentence once, at the start:
 
 ```
 pick up the cube, then put the cube on the cylinder, then pick up the cube,
 then put the cube on the target, then pick up the cylinder, then put the cylinder on the cube
 ```
 
-No planner splits the sentence, and the simulator doesn't tell the policy which command it's on.
+Nothing splits the sentence up for it, and the simulator never tells it which command it's on. When it thinks a command is finished, it writes "(done)" after that command in the sentence it reads next. That's its only memory.
 
 [Project page with videos](https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/)
 
-## Results
-
-All commands done in order, out of 100 unseen layouts. Final model: `ours_cyl_marks_nolift`.
-
-| Task | Commands | Student (cameras + sentence) | Teacher (exact positions) |
-| :--- | :---: | ---: | ---: |
-| pick up the cube / the cylinder | 1 | 94 / 59 | 100 |
-| push the cube to the target | 1 | 59 | 100 |
-| cube to the target / cylinder to the target | 2 | 97 / 77 | 100 |
-| cube on the cylinder / cylinder on the cube | 2 | 96 / 81 | 100 |
-| push the cylinder to the target, stack the cube on it | 3 | 62 | 94 |
-| **stack, then unstack** | **4** | **81** | 100 |
-| **stack, unstack, restack** | **6** | **40** | 94 |
-| stack, unstack, twice | 8 | 0 | 100 |
-
-Everything with 3+ commands was never seen in training. The teacher is told which command it's on; the student has to keep track itself, which is where the gap comes from.
-
-<p align="center">
-  <img src="results/site_media/unstack_4of4.gif" alt="Stack, then unstack: four commands in order" width="49%">
-  <img src="results/site_media/restack8_marks_race.gif" alt="Eight commands: the marks run ahead after four" width="49%">
-</p>
-<p align="center"><sub>Left: 4 commands in order. Right: 8 commands, the marks run ahead after four and it stops.</sub></p>
-
 ## Play with it
 
-The robot runs live on the [play page](https://theundercover01.github.io/ayushdeshmukh/projects/play/) when my GPU is on (`play/`, `play/watchdog.sh` keeps it up).
+The robot runs live on the [play page](https://theundercover01.github.io/ayushdeshmukh/projects/play/) whenever my GPU is on.
 
-- **Sabotage the robot:** it gets a 2-, 4- or 6-step task; you get one sabotage per round (knock the object away, or write a fake "(done)"). You win if the task isn't really done when it stops. Winning takes knowing the method: it keeps its place only through its own "(done)" marks and never revisits a marked step.
-- **Tic-tac-toe:** you're O, the robot is X. The game picks the square and moves the target pad; the robot has to really place a cube there. Pieces are drawn flat on the table.
-- **Build a sentence:** up to ten commands; watch it work through them.
+- **Sabotage the robot.** It gets a task of 2, 4 or 6 steps, and you get one sabotage per round: knock the object away, or write a fake "(done)" into its sentence. You win if the task isn't really done when it stops. To win you need to understand how it works: its only memory is its own "(done)" marks, and it never goes back to a step it has marked.
+- **Tic-tac-toe.** You're O, the robot is X. On its turn the game picks a square and moves the green target there, and the robot has to actually place a cube on it. If it misses, it loses the turn. The pieces are drawn flat on the table.
+- **Build a sentence.** Put together up to ten commands and watch it work through them.
 
-The tic-tac-toe robot is a fine-tune of an earlier student (same recipe): first on recordings with the target on the nine squares, then on 2,000 more with random flat X / O pieces on the board (placement with pieces 38 → 97 of 100).
+The tic-tac-toe robot is a fine-tune of an earlier student with the same recipe: first on recordings with the target on the nine squares, then on 2,000 more with random X and O pieces on the board. With pieces on the board it places its cube 97 times out of 100, up from 38 before that second step.
+
+## Results
+
+Each row is one sentence, tried on 100 table layouts the model never saw. A run only counts if every command was done, one after the other. One step is one command: "put the cube on the target" is two steps, because the robot has to pick it up first.
+
+| The sentence asks the robot to... | Steps | Robot (two cameras + the sentence) | Teacher (knows exact positions and the current step) |
+| :--- | :---: | ---: | ---: |
+| pick up the cube | 1 | 94 | 100 |
+| pick up the cylinder | 1 | 59 | 100 |
+| push the cube to the target | 1 | 59 | 100 |
+| put the cube on the target | 2 | 97 | 100 |
+| put the cylinder on the target | 2 | 77 | 100 |
+| put the cube on the cylinder | 2 | 96 | 100 |
+| put the cylinder on the cube | 2 | 81 | 100 |
+| push the cylinder to the target, then stack the cube on it | 3 | 62 | 94 |
+| **stack the cube on the cylinder, then move the cube to the target** | **4** | **81** | 100 |
+| **the same, then stack the cylinder on the cube (the example above)** | **6** | **40** | 94 |
+| stack the cube on the cylinder and move it to the target, twice | 8 | 0 | 100 |
+
+Every task with three or more steps is longer than anything in training. The teacher is told which step it's on; the robot has to keep track by itself, and that's where most of the gap comes from. Final model: `ours_cyl_marks_nolift`.
+
+<p align="center">
+  <img src="results/site_media/unstack_4of4.gif" alt="Four steps done in order" width="49%">
+  <img src="results/site_media/restack8_marks_race.gif" alt="Eight steps: the marks run ahead after four" width="49%">
+</p>
+<p align="center"><sub>Left: the 4-step task, done in order. Right: the 8-step task. Its "(done)" marks run ahead after four steps and it stops.</sub></p>
 
 ## How it works
 
@@ -62,12 +67,17 @@ The tic-tac-toe robot is a fine-tune of an earlier student (same recipe): first 
 
 ### Why this way
 
-- **Fine-tune a VLA on the clips?** It doesn't combine skills: trained on single skills it got 0 on every combined task.
-- **Copy my hand?** A hand and a two-finger gripper grasp differently. The object's motion is what transfers.
-- **Record the long tasks?** Every combination would need its own demos. Filming each skill once is the point.
-- **Hand-written rewards?** Every one got gamed. A reward on the object's path doesn't care how it's held.
-- **RL on the VLA directly?** Too slow on a 450M image model. A small teacher with exact positions learns in hours.
-- **A planner feeding one command at a time?** Works and scores higher, but then the memory lives outside the model.
+**Why not just fine-tune a VLA on the clips?** Because it doesn't learn to combine skills. When I trained SmolVLA directly on single-skill demonstrations, it learned a bit of pushing (16 of 100), no picking up, and scored 0 on every task with two or more steps. Seeing each skill on its own isn't enough to know how to chain them.
+
+**Why not copy my hand?** My hand and a two-finger gripper grab things in completely different ways, so copying the hand would teach the wrong motion. What does carry over is what happens to the object: where it goes, how high, and in which direction. So I track the object and let the robot work out how to make that happen with its own gripper.
+
+**Why not record robot demos of the long tasks?** Even with two objects and three skills there are a lot of possible 4-, 6- and 8-step tasks, and every new combination would need its own demos. The point was to film each skill once and get the combinations for free.
+
+**Why not hand-write a reward for each task?** I tried, and the robot found a way around every one: it sat on the gripper's release threshold to collect two rewards at once, and later pushed things instead of lifting them. A reward that only follows the object's path doesn't care how the object is held, and it works for any combination of skills.
+
+**Why train an RL teacher first and then distill?** RL is easy in simulation when the policy can see everything: 16,384 robots run in parallel, each knows the exact object positions, and a teacher learns every skill in a couple of hours. Running RL directly on a 450M-parameter model that only sees camera images would be far slower. So the teacher does the trial and error, and distillation turns it into a data machine: I can record as many labelled episodes as I want, from any layout, and the VLA only has to copy them.
+
+**Why give the whole sentence instead of feeding one command at a time?** Feeding one command at a time works, and it scores higher. But then the hard part, knowing when a step is really finished and what comes next, lives in a script outside the model. I wanted the model itself to read the instruction and keep its place.
 
 ## 1 · Clips
 
@@ -83,41 +93,45 @@ The tic-tac-toe robot is a fine-tune of an earlier student (same recipe): first 
   <img src="results/site_media/real_clip_to_template.gif" alt="A phone clip with tracked markers next to the template the reward uses" width="100%">
 </p>
 
-Eight points on the object follow the skill's template from start to goal; the robot is paid for progress along it.
+The reward only looks at the object. I track eight points on it, and they have to follow the skill's path, from where the object starts to where the command wants it. The robot gets paid for progress along that path, and the command counts as finished once the object reaches the goal and stays there.
 
-- **From the clips:** lift height (20 cm), drop height, push direction, how much the object may turn, and the 3 cm tolerance (the spread of my own clips).
-- **Set by hand:** "finished" = within ~2 cm of the goal, slower than 0.1 m/s for 0.3 s; step cost, per-command bonus, small hold-still bonus.
-- **Hand leg:** an object-only reward gives nothing until the gripper touches the object (nothing learned in 504 iterations). The reward is one chain, gripper → object → target, and every episode starts from a random arm pose.
-- **No lifting during a push:** with the hand leg, the teacher pushed by carrying (85/100). A small penalty fixed it (0/100), hence "no-lift".
+The path itself comes from my clips: how high a pick-up goes (about 20 cm), where a put-down ends, which way a push goes and how much the object turns on the way. The 3 cm tolerance around the path is how much my own clips wander. A few things a clip can't tell you I set by hand: "finished" means within about 2 cm of the goal and almost still (under 0.1 m/s) for 0.3 s, plus a small cost per step and a bonus for each finished command.
+
+Two fixes were needed on top. First, a reward on the object alone gives the arm nothing to go on until it happens to touch the object, and one run learned nothing in 504 iterations. So the reward also includes a straight path from the gripper to the object, and every episode starts from a random arm pose. Second, with that path in place the teacher learned to "push" by picking the cube up and carrying it (85 of 100 pushes). A small penalty for lifting during a push stopped it (0 of 100), which is where the final model's name, "no-lift", comes from.
 
 ## 3 · Teacher
 
 Franka Panda in Isaac Lab, PPO, 16,384 envs, 1000 iterations. It sees exact object positions, the next template point and the current command. One or two commands per episode is enough to learn the skills and the handoff between them; a 6-step task is five handoffs in a row.
 
-PPO first learned bang-bang control that a VLA can't imitate (no better than predicting the mean). The arm now executes a low-pass filtered action (95% previous, 5% new) and the student learns the executed motion. Smoother teacher, better student.
+One problem showed up at distillation time. PPO first learned "bang-bang" control: 30 to 55% of its actions sat right at the limits and flipped direction from one step to the next, which works for the teacher but looks like noise to a model trying to copy it. The VLA fit those actions no better than just predicting the average action. The fix was to make the arm move smoothly: it executes a running average of the teacher's commands (95% the previous one, 5% the new one), and the student learns the motion the arm actually made. Each time I made the teacher smoother, the student got better.
 
 ## 4 · Student
 
-SmolVLA from `smolvla_base`, trained on 3000 paired + 1500 push teacher episodes (32K steps). It sees a front camera, a wrist camera and the sentence; no positions, no counter. Every scene is recorded twice, once saying "cube" and once "cylinder", so it has to read the sentence to pick the object (earlier version: 45 → 80).
+SmolVLA, starting from the public `smolvla_base` weights, trained for 32K steps on 4,500 recorded teacher episodes. It sees a front camera, a wrist camera and the sentence, and nothing else: no positions and no step counter.
+
+The 4,500 episodes are split 3,000 + 1,500 on purpose. The 3,000 are *paired*: every scene is recorded twice, once with "the cube" in the sentence and once with "the cylinder". The images are the same, so the only way to know which object to move is to read the sentence (in an earlier version this took picking the right object from 45 to 80 of 100). The extra 1,500 are pushes, because pushing was the weakest skill; in an earlier version, more push data took push from 23 to 44 of 100.
 
 ## The memory problem
 
-The image doesn't say which step you're on: in the 6-step task the arm reaches for the cube in step 1 and again in step 3, and the scenes look almost the same.
+This is the core of the project. Doing a long task takes three things: the skills, the handoffs between them, and knowing where you are in the list. The teacher learns the first two, and the student copies them. The third is the hard part, and the teacher never has to solve it, because the simulator tells it which command is current. The student has only two cameras and the sentence.
 
-| Memory | Result |
+And the camera doesn't tell you where you are. In the 6-step example, the arm reaches for the cube in step 1 and again in step 3, and the two scenes look almost the same. Later the cube sits on the target after step 4, which looks exactly like a finished 4-step task. A policy that only looks at the current picture can't know whether it has done a step yet, so it repeats steps or skips them. It needs memory, and the question is where to put it.
+
+| Where the memory lives | Result |
 | :--- | :--- |
-| None, just the whole sentence | 4 commands: 14, in order once |
-| Past frames / past actions | no help |
-| Outside pointer, one command at a time | 4 commands: 90 lenient / 65 in order (memory outside the model) |
-| Counter in the input ("k done") | 4 commands: 75, 6 commands: 5 |
-| **"(done)" marks in the sentence** | **6 commands: 40 in order** |
+| Nowhere: just the whole sentence | 4 steps: 14 of 100, in order once |
+| Older camera frames, past actions | no help: an old frame doesn't say which step that was either |
+| A script that feeds one command at a time | 4 steps: 65 in order, but the memory is outside the model |
+| A number in the input ("k steps done") | 4 steps: 75 lenient, 6 steps: 5. It had never seen position 6 |
+| **"(done)" written into the sentence** | **6 steps: 40 in order** |
+
+The answer that worked is to let the model write its memory in the one place it already reads: the sentence. It has one extra output, "is this step done?". When that stays high for half a second, "(done)" is added after the current command, and the next time it reads:
 
 > ~~pick up the cube~~ **(done)**, then ~~put the cube on the cylinder~~ **(done)**, then **pick up the cube** ← now, then put the cube on the target
 
-- **Label:** the done output is 1 for the last 0.5 s before the teacher switched commands.
-- **Mark:** above 0.85 for 5 steps → "(done)" after the current command. The first unmarked command is the one to do.
-- **Padding:** training sentences are padded to 10 commands, some pre-marked, so every position shows up.
-- **It uses the marks:** marks off, 4 commands succeed 0/50; two marks pre-written, it skips to command 3 and finishes 42/50.
+The first command without a mark is the one to do. No extra network and no planner: a language model turns out to be much better at noticing which words are marked than at using a number. In training, that output is 1 for the half-second before the teacher moved on to its next command, and the sentences are padded with up to 10 commands, some already marked, so every position shows up even though episodes have only one or two real commands.
+
+It really does use the marks. With marking switched off, the 4-step task never finishes (0 of 50). With the first two marks written in advance, it skips straight to step 3 and finishes 42 of 50.
 
 ## Evaluation
 
