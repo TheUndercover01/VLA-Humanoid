@@ -25,3 +25,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 .vscode/
+
+# running lab log, local only
+PROGRESS.md

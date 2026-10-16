@@ -1,11 +1,11 @@
 <h1 align="center">I Never Showed It the Task</h1>
-<p align="center"><b>Composing multi-step manipulation from single-skill phone clips, an RL teacher, and a VLA that keeps its own place</b></p>
+<p align="center"><b>Composing multi-step manipulation from single-skill phone clips, an RL teacher, and a VLA that marks its own progress through the sentence</b></p>
 
 <p align="center">
   <img src="results/site_media/restack_6of6.gif" alt="A Franka arm carries out six commands from one sentence, in order" width="70%">
 </p>
 
-**Abstract.** I filmed myself doing single skills on my phone (pushing, picking up, putting down) and never two in a row. From the tracked object paths I built a reward, trained an RL teacher in simulation on episodes of at most two commands, and distilled it into a vision-language-action model (SmolVLA, 450M) that sees only two cameras and a sentence. Given one sentence with several commands, the model keeps its own place by writing "(done)" after each command it believes is finished. It does a 4-step task it never saw in order 81 times in 100, a 6-step task 40 times, and an 8-step task never. The failures point to one cause: the model's "done" signal follows the image, not the sentence.
+**Abstract.** I filmed myself doing single skills on my phone (pushing, picking up, putting down) and never two in a row. From the tracked object paths I built a reward, trained an RL teacher in simulation on episodes of at most two commands, and distilled it into a vision-language-action model (SmolVLA, 450M) that sees only two cameras and a sentence. Given one sentence with several commands, the model tracks its progress by writing "(done)" after each command it believes is finished. It does a 4-step task it never saw in order 81 times in 100, a 6-step task 40 times, and an 8-step task never. The failures point to one cause: the model's "done" signal follows the image, not the sentence.
 
 For example, the robot gets this sentence once, at the start:
 
@@ -52,7 +52,7 @@ The question: if a robot is only ever shown single skills, can it carry out a mu
 
 - **H1. Single-skill clips are enough to learn the skills.** A reward built only from how the object moves in my phone clips can train an RL policy on every skill and on the handoff from one skill to the next.
 - **H2. Skills plus handoffs compose.** A VLA distilled from a teacher that only ever ran one or two commands per episode can do longer sentences at inference, because a long task is just more handoffs of kinds it has seen.
-- **H3. The missing piece is memory, and it can live in the sentence.** From the camera alone a policy can't tell which step it's on. If the model writes its own progress into its input as "(done)" marks, it can keep its place without a planner or an outside counter.
+- **H3. The missing piece is memory, and it can live in the sentence.** From the camera alone a policy can't tell which step it's on. If the model writes its own progress into its input as "(done)" marks, it can track progress without a planner or an outside counter.
 
 ## 2 · Method
 
@@ -176,12 +176,16 @@ Of 100 runs, the failures stop at step 5, picking up the cylinder (25), step 4 (
 
 ## 5 · Limitations
 
-- **8 steps: 0 of 100.** The done signal runs ahead (4.3).
-- **The cylinder and pushing** are weak (59 each). Sentences that start with the cylinder mostly fail.
-- **No undo.** A wrong "(done)" is never taken back, so the skipped step is never redone.
-- **The scores use a loose check.** With 1.5 cm / 0.5 s the 6-step score is 12.
-- **One scene.** One cube, one cylinder, one target, two fixed cameras, in simulation. Anything new on the table hurts until it's in the data.
-- **The games' tic-tac-toe robot** is a separate fine-tune, not the final model.
+- **"Done" has no time dimension, so the robot never learns to let go.** A step is complete when the object reaches its goal pose and comes to rest. The test never looks at the gripper (on purpose: object-level, any embodiment), and it never asks the object to *stay* there once the next step starts. Releasing earns nothing. Example: *pick up the cube, put the cube on the target, pick up the cylinder, put the cylinder on the cube.* The cube reaches the target and gets marked done while still in the gripper. The robot then drags it toward the cylinder, opens whenever it happens to, grasps the cylinder and puts it on the cube wherever the cube now is. Object-centric goals need a spatio-temporal part: where the object has to be, and for how long (until the task ends or a later step moves it). The scoring has the same blind spot. A step counts once its result holds for 0.2 s, so this run can still score as a success.
+- **8 steps: 0 of 100.** The done signal follows the image, not the sentence. On the 8-step task, 60 of 100 runs stop at exactly 4 steps in order while the marks have already reached 8 of 8. The scene after step 4 looks like a finished 4-step task, so the model marks the rest done (4.3).
+- **No undo.** A wrong "(done)" is never taken back, so the skipped step is never redone. A self-check that erases wrong marks finds them (93–100% correct), but the robot doesn't complete the step on the second try.
+- **The headline uses a loose check.** Positions within 5 cm and results held 0.2 s. With 1.5 cm / 0.5 s the 6-step score is 12 in order, not 40 (§3).
+- **No separate test set.** The final model and the check were both chosen on the same 100 validation layouts the numbers are reported on.
+- **Cylinder and pushing are weak** (59 each, the teacher gets 100). Grasped too high, the cylinder tips, and once it's on its side it can't be picked up (never in the data). Most sentences that start with the cylinder fail.
+- **The student is 3–54 points behind its teacher** on every task. The teacher sees the true object state; the student has two cameras.
+- **Not every part of the reward comes from the clips.** The completion thresholds, time penalty, completion bonus and the gripper→object leg are set by hand.
+- **One scene, in simulation.** One cube, one cylinder, a fixed target, two fixed cameras. Anything new on the table hurts until it's in the data.
+- **The tic-tac-toe robot** in the games is a separate fine-tune, not the final model.
 
 ## 6 · Future work
 
@@ -223,7 +227,7 @@ PUSH=1 play/run_tunnels.sh start; play/watchdog.sh
 | Eval | `sim/eval_chains.py --learned_done --marks --whole_prompt` |
 | Games | `play/` |
 
-Paths in the scripts point to my machine (`/media/storage/...`); change them to yours. [PROGRESS.md](PROGRESS.md) is the running lab log, written by an AI coding assistant as the experiments ran. It is kept raw: dead ends, bugs and superseded numbers included. The numbers in this README are the final ones.
+Paths in the scripts point to my machine (`/media/storage/...`); change them to yours.
 
 ## Related work
 
