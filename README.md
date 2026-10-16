@@ -20,11 +20,12 @@ then put the cube on the target, then pick up the cylinder, then put the cylinde
 
 Nothing splits it up, and the simulator never tells the policy which command it's on.
 
+<p align="center"><b>Click the buttons below to play with the robot live and to see the project page on my website.</b></p>
 <p align="center">
-  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/play/"><img src="docs/btn_play.svg" alt="Play with the robot live" width="440"></a>
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/play/"><img src="docs/btn_play.svg" alt="Play with the robot live" width="300"></a>
 </p>
 <p align="center">
-  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><img src="docs/btn_project.svg" alt="Project page (my submission)" width="440"></a>
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><img src="docs/btn_project.svg" alt="Project page" width="300"></a>
 </p>
 
 ## Results
