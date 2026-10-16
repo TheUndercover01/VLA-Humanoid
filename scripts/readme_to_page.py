@@ -12,7 +12,7 @@ VID = {"real_clip_to_template": "clip_to_template"}            # gif name -> mp4
 PLAY = "https://theundercover01.github.io/ayushdeshmukh/projects/play/"
 EXTRA_CSS = """
   /* 16 Oct: README-generated page */
-  .paper-sub i{display:block;margin-top:.35rem}
+  .paper-sub i{display:block;margin-top:.35rem;color:var(--accent-warm);font-weight:400}
   .paper video.v{display:inline-block;vertical-align:top;background:#000;border:3px solid var(--fg);border-radius:4px;box-shadow:4px 4px 0 var(--shadow);margin:.25rem .3%}
   .paper .center{text-align:center;margin:0 0 .6rem}
   .paper .center sub{display:block;font-size:.82rem;line-height:1.45;color:var(--muted);max-width:46rem;margin:0 auto}
