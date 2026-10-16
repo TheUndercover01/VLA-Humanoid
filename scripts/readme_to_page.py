@@ -87,7 +87,8 @@ def flair(html):
     html = re.sub(r"<blockquote>\s*<p[^>]*>(.*?)</p>\s*</blockquote>",
                   lambda m: chips(m.group(1)) if ", then" in m.group(1) else m.group(0), html, flags=re.S)
     # the pipeline figure -> the old 5-step strip
-    flow = (Path(__file__).parent.parent / "docs" / "page_flow.html").read_text()
+    flow = ('<div class="center"><img src="img/five_steps.svg" alt="1 Film atomic skills, 2 Infer the reward, 3 Train an RL teacher, '
+            '4 Distill into a VLA, 5 Compose new tasks" style="width:100%;height:auto"></div>')   # 16 Oct: an image, so the last card is never cut off
     html = re.sub(r'<div class="center">\s*<img src="img/pipeline.svg"[^>]*>\s*</div>', flow, html)
     # paragraphs that open with a bold lead -> side-note boxes
     html = re.sub(r'<p class="paper-text"><strong>(?!H\d)(.*?)</strong>(.*?)</p>',
