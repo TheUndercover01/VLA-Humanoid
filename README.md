@@ -32,19 +32,19 @@ Nothing splits it up, and the simulator never tells the policy which command it'
 
 Success rate (%) over 100 held-out table layouts per task. A run succeeds only if the simulator registers every command of the sentence as completed, in order (§3).
 
-| Commands in the sentence | # | Student (2 RGB cameras + sentence) | Teacher (privileged state, told the current command) |
+| Task, and the sentence the robot gets | Steps | Student (2 RGB cameras + sentence) | Teacher (privileged state, told the current step) |
 | :--- | :---: | ---: | ---: |
-| pick up cube | 1 | 94 | 100 |
-| pick up cylinder | 1 | 59 | 100 |
-| push cube to target | 1 | 59 | 100 |
-| pick up cube → place on target | 2 | 97 | 100 |
-| pick up cylinder → place on target | 2 | 77 | 100 |
-| pick up cube → place on cylinder | 2 | 96 | 100 |
-| pick up cylinder → place on cube | 2 | 81 | 100 |
-| push cylinder to target → pick up cube → place on cylinder | 3 | 62 | 94 |
-| **pick up cube → place on cylinder → pick up cube → place on target** | **4** | **81** | 100 |
-| **pick up cube → place on cylinder → pick up cube → place on target → pick up cylinder → place on cube** (the example sentence) | **6** | **40** | 94 |
-| pick up cube → place on cylinder → pick up cube → place on target → pick up cube → place on cylinder → pick up cube → place on target | 8 | 0 | 100 |
+| Pick up the cube<br><sub><i>"pick up the cube"</i></sub> | 1 | 94 | 100 |
+| Pick up the cylinder<br><sub><i>"pick up the cylinder"</i></sub> | 1 | 59 | 100 |
+| Push the cube<br><sub><i>"push the cube to the target"</i></sub> | 1 | 59 | 100 |
+| Cube to the target<br><sub><i>"pick up the cube, then put the cube on the target"</i></sub> | 2 | 97 | 100 |
+| Cylinder to the target<br><sub><i>"pick up the cylinder, then put the cylinder on the target"</i></sub> | 2 | 77 | 100 |
+| Cube on the cylinder<br><sub><i>"pick up the cube, then put the cube on the cylinder"</i></sub> | 2 | 96 | 100 |
+| Cylinder on the cube<br><sub><i>"pick up the cylinder, then put the cylinder on the cube"</i></sub> | 2 | 81 | 100 |
+| Push, then stack<br><sub><i>"push the cylinder to the target, then pick up the cube, then put the cube on the cylinder"</i></sub> | 3 | 62 | 94 |
+| **Stack, then unstack**<br><sub><i>"pick up the cube, then put the cube on the cylinder, then pick up the cube, then put the cube on the target"</i></sub> | **4** | **81** | 100 |
+| **Restack** (the example sentence)<br><sub><i>"pick up the cube, then put the cube on the cylinder, then pick up the cube, then put the cube on the target, then pick up the cylinder, then put the cylinder on the cube"</i></sub> | **6** | **40** | 94 |
+| Stack and unstack, twice<br><sub><i>"pick up the cube, then put the cube on the cylinder, then pick up the cube, then put the cube on the target, then pick up the cube, then put the cube on the cylinder, then pick up the cube, then put the cube on the target"</i></sub> | 8 | 0 | 100 |
 
 Training episodes contain at most 2 commands; every row with 3 or more is out of distribution in length. Final model: `ours_cyl_marks_nolift`.
 
