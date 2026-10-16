@@ -15,9 +15,9 @@ until grep -q "serving" $C/server_hv_$NAME.log 2>/dev/null || ! kill -0 $SERVER 
 kill -0 $SERVER 2>/dev/null || { log "HEADLINE $NAME: server failed"; exit 1; }
 for ch in $CHAINS; do
   exec 9>$C/isaac_eval.lock; flock 9
-  CUDA_VISIBLE_DEVICES=0 timeout -k 30 2400 scripts/run_isaac.sh $C/hv_${NAME}_$ch.log sim/eval_chains.py --headless --device cuda:0 --keypoints \
-    --hold_fix --chain $ch --val --num_envs 8 --policy vla --vla_port $PORT --replan 1 --learned_done $FLAGS --whole_prompt \
-    --name ${NAME}_hv --out runs/eval/headline/${NAME}_$ch.csv --video $V/${NAME}_$ch.mp4 --video_split --video_envs 0,1,2,3,4,5,6,7
+  CUDA_VISIBLE_DEVICES=${ISAAC_GPU:-0} timeout -k 30 2400 scripts/run_isaac.sh $C/hv_${NAME}_$ch.log sim/eval_chains.py --headless --device cuda:0 --keypoints \
+    --hold_fix --chain $ch --val --num_envs ${NENV:-8} --policy vla --vla_port $PORT --replan 1 --learned_done $FLAGS --whole_prompt \
+    --name ${NAME}_hv --out runs/eval/headline/${NAME}_$ch.csv --video $V/${NAME}_$ch.mp4 --video_split --video_envs $(seq -s, 0 $((${NENV:-8}-1)))
   flock -u 9; exec 9>&-
   pkill -9 -f "sim/eval_chains.py.*headline/${NAME}_$ch" 2>/dev/null
   log "HEADLINE $NAME $ch: $(grep -aoE 'lenient [0-9]+/[0-9]+, in-order [0-9]+/[0-9]+ \(mean commands in order [0-9.]+/[0-9]+\)' $C/hv_${NAME}_$ch.log | tail -1)"

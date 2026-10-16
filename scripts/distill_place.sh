@@ -16,7 +16,7 @@ log() { echo "$(date '+%a %H:%M') $*" | tee -a $STATUS; }
 log "$NAME: building $SHARDS shards (prompt_mode $MODE, pad even up to $MAXC commands, k/$KN, dup_push $DUP, done channel) from $ROLL"
 for i in $(seq 0 $((SHARDS-1))); do
   HF_HOME=$C/hf HF_LEROBOT_HOME=$D/lerobot PYTHONPATH=$PWD $PY -m vla.build_dataset --src $ROLL --repo_id local/${NAME}_s$i \
-    --root $D/lerobot/shards/${NAME}_s$i --prompt_mode $MODE --pad even --dup_push $DUP --max_cmds $MAXC --k_norm $KN --done_frames 5 --streaming --shard $i/$SHARDS > $C/build_${NAME}_s$i.log 2>&1 &
+    --root $D/lerobot/shards/${NAME}_s$i --prompt_mode $MODE ${PROGRESS:+--progress} ${CONTRAST:+--contrast $CONTRAST} --pad even --dup_push $DUP --max_cmds $MAXC --k_norm $KN --done_frames 5 --streaming --shard $i/$SHARDS > $C/build_${NAME}_s$i.log 2>&1 &
 done
 wait
 [ "$(grep -al '^wrote' $C/build_${NAME}_s*.log | wc -l)" = "$SHARDS" ] || { log "$NAME: shard build failed"; exit 1; }
@@ -38,4 +38,4 @@ sleep 120
 PID=$(pgrep -f "lerobot-train.*dataset.repo_id=local/$NAME" | head -1)
 [ -n "$PID" ] && setsid nohup python3 scripts/early_stop.py --log $C/ft_$NAME.log --pid $PID --window 6000 --min_gain 0.015 >> $C/early_stop_$NAME.log 2>&1 < /dev/null &
 log "$NAME: early-stop watchdog on (window 6000 steps, 1.5% gain; trainer pid ${PID:-none})"
-FLAGS=$([ $MODE = marks ] && echo --marks || echo "--memory_done --k_norm $KN") NAME=$NAME PORT=$PORT GPU=$GPU scripts/eval_memory_student.sh
+FLAGS="$([ $MODE = marks ] && echo "--marks ${PROGRESS:+--progress}" || echo "--memory_done --k_norm $KN") ${EVAL_EXTRA:-}" NAME=$NAME PORT=$PORT GPU=$GPU ISAAC_GPU=${ISAAC_GPU:-0} scripts/eval_memory_student.sh

@@ -33,6 +33,15 @@ parser.add_argument("--episode_s", type=float, default=0.0, help="--task keypoin
 parser.add_argument("--derived", action="store_true", help="9 Oct: per-skill rest speed and hold time from the clips (needs keypoint_ref_real_straight_v2.npz)")
 parser.add_argument("--ref", default=None, help="skill/keypoint reference (default: the stand-in one for --task)")
 parser.add_argument("--bank", default="data/processed/state_bank_standin.npz")
+parser.add_argument("--push_lift_pen", type=float, default=0.0, help="13 Oct: penalty per tick while a push command has its object more than 1 cm in the air (1.0 at 5 cm)")
+parser.add_argument("--hand_leg", action="store_true", help="10 Oct: the hand's straight leg to the object in the reward (+4 teacher observations)")
+parser.add_argument("--place_tol", type=float, default=0.0, help="14 Oct: put-down done tolerance in m (mean corner distance; 0 = default 2.14 cm)")
+parser.add_argument("--place_hold", type=int, default=0, help="14 Oct: ticks the put-down done check must hold (0 = default 3)")
+parser.add_argument("--held_p", type=float, default=0.0, help="14 Oct: share of episodes starting with the object in the hand (put it down, then pick up the next)")
+parser.add_argument("--push_p", type=float, default=0.3, help="14 Oct: share of push episodes among the fresh ones")
+parser.add_argument("--cube_push_only", action="store_true", help="14 Oct: pushes move the cube only (no 'push the cylinder')")
+parser.add_argument("--rand_init", type=float, default=0.0, help="12 Oct: scale of the random joint offsets of the arm's starting pose (0 = home pose)")
+parser.add_argument("--bank_p", type=float, default=0.6, help="share of training episodes started from a scripted clip state (0 = none)")
 AppLauncher.add_app_launcher_args(parser)
 args = parser.parse_args()
 if args.ref is None:
@@ -50,6 +59,11 @@ from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper, handle_deprecated_rsl_rl_cfg 
 
 from sim.envs.panda_env import PandaTaskEnv, PandaTaskEnvCfg  # noqa: E402
 from sim.envs.keypoint_env import PandaKeypointEnv, PandaKeypointEnvCfg  # noqa: E402
+from sim.envs import tasks  # noqa: E402
+if tasks.OBJECTS == "multi":      # 10 Oct: the made-up-objects / games env (sim/envs/multi_env.py, local only) behind the same flags
+    from sim.envs.multi_env import PandaMultiEnv as KeypointEnv, PandaMultiEnvCfg as KeypointEnvCfg  # noqa: E402
+else:
+    KeypointEnv, KeypointEnvCfg = PandaKeypointEnv, PandaKeypointEnvCfg
 from sim.envs.skill_env import PandaSkillEnv, PandaSkillEnvCfg  # noqa: E402
 from sim.envs.vocab_env import PandaVocabEnv, PandaVocabEnvCfg  # noqa: E402
 from sim.rl_cfg import RawPPOCfg, VocabPPOCfg  # noqa: E402
@@ -59,12 +73,13 @@ def main():
     torch.manual_seed(args.seed)
     skills = args.task in ("skills", "keypoints")
     if args.task == "keypoints":
-        env_cfg = PandaKeypointEnvCfg(task="c1", terminate_on_success=False, max_chain=args.max_chain,
+        env_cfg = KeypointEnvCfg(task="c1", terminate_on_success=False, max_chain=args.max_chain,
                                       ref_path=args.ref, bank_path=args.bank, hold_fix=args.hold_fix,
                                       release=args.release, time_cost=args.time_cost,
                                       knock_penalty=args.knock_penalty, rest_speed=args.rest_speed,
                                       action_rate=args.action_rate, action_filter=args.action_filter,
-                                      derived=args.derived)
+                                      derived=args.derived, hand_leg=args.hand_leg, push_lift_pen=args.push_lift_pen, bank_p=args.bank_p,
+                                      rand_init=args.rand_init, held_p=args.held_p, place_tol=args.place_tol, place_hold=args.place_hold, push_p=args.push_p, cube_push_only=args.cube_push_only)
         if args.episode_s:
             env_cfg.episode_s = args.episode_s
     elif skills:
@@ -78,7 +93,7 @@ def main():
     env_cfg.scene.num_envs = args.num_envs
     env_cfg.sim.device = args.device
     env_cfg.seed = args.seed
-    base = PandaKeypointEnv(env_cfg) if args.task == "keypoints" else PandaSkillEnv(env_cfg) if skills else PandaVocabEnv(env_cfg) if args.action.startswith("vocab") \
+    base = KeypointEnv(env_cfg) if args.task == "keypoints" else PandaSkillEnv(env_cfg) if skills else PandaVocabEnv(env_cfg) if args.action.startswith("vocab") \
         else PandaTaskEnv(env_cfg)
     env = RslRlVecEnvWrapper(base)
 
@@ -102,7 +117,7 @@ def main():
          **({"skill_reward": args.skill_reward, "max_chain": args.max_chain, "ref": args.ref, "bank": args.bank,
              "hold_fix": args.hold_fix, "release": args.release, "time_cost": args.time_cost,
              "knock_penalty": args.knock_penalty, "rest_speed": args.rest_speed, "action_rate": args.action_rate,
-             "action_filter": args.action_filter, "derived": args.derived, "episode_s": args.episode_s or 15.0}
+             "action_filter": args.action_filter, "derived": args.derived, "hand_leg": args.hand_leg, "push_lift_pen": args.push_lift_pen, "bank_p": args.bank_p, "rand_init": args.rand_init, "held_p": args.held_p, "place_tol": args.place_tol, "place_hold": args.place_hold, "push_p": args.push_p, "cube_push_only": args.cube_push_only, "episode_s": args.episode_s or 15.0}
             if skills else {})}, indent=1))
     if args.resume:
         (log_dir / "resumed.txt").open("a").write(f"resumed from {args.resume}\n")

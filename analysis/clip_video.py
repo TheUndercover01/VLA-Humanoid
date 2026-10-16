@@ -22,6 +22,7 @@ RAW = Path("/home/ayush/vla_stuff/data/clips")
 REF = Path("data/processed/keypoint_ref_real_straight.npz")
 TOL = 0.03
 H = 540
+NAMES = {"pick-lift": "pick up", "place-down": "put down", "push": "push"}
 
 
 def side_view(pos, end, skill):
@@ -37,14 +38,14 @@ def panel(sv, k, tpl, title, size):
     a0, a1 = tpl[0], np.zeros(2)
     n = np.array([-(a1 - a0)[1], (a1 - a0)[0]]) / (np.linalg.norm(a1 - a0) + 1e-9)
     band = np.array([a0 + TOL * n, a1 + TOL * n, a1 - TOL * n, a0 - TOL * n])
-    ax.fill(band[:, 0] * 100, band[:, 1] * 100, color="tab:green", alpha=0.15, label="template, 3 cm tolerance")
-    ax.plot([a0[0] * 100, 0], [a0[1] * 100, 0], "--", color="tab:green", lw=2, label="straight start -> goal (mean of the clips)")
-    ax.plot(sv[:k + 1, 0] * 100, sv[:k + 1, 1] * 100, "o-", color="tab:orange", ms=4, label="this clip, tracked marker")
-    ax.plot([0], [0], "k*", ms=14, label="goal (where the object ends)")
+    ax.fill(band[:, 0] * 100, band[:, 1] * 100, color="tab:green", alpha=0.15)
+    ax.plot([a0[0] * 100, 0], [a0[1] * 100, 0], "--", color="tab:green", lw=2, label="template")
+    ax.plot(sv[:k + 1, 0] * 100, sv[:k + 1, 1] * 100, "o-", color="tab:orange", ms=4, label="clip")
+    ax.plot([0], [0], "k*", ms=14)
     lim = np.abs(np.concatenate([sv, tpl])).max() * 100 + 5
     ax.set_xlim(-lim, 6); ax.set_ylim(-lim * 0.6 if sv[:, 1].min() < -0.02 else -6, lim * 0.6 if sv[:, 1].max() > 0.02 else 6)
-    ax.set_xlabel("horizontal, cm (travel direction)"); ax.set_ylabel("height, cm")
-    ax.set_title(title, fontsize=10); ax.grid(alpha=0.3); ax.legend(fontsize=7, loc="upper right")
+    ax.set_xlabel("cm"); ax.set_ylabel("cm")
+    ax.set_title(title, fontsize=10); ax.grid(alpha=0.3); ax.legend(fontsize=9, loc="upper right")
     ax.set_aspect("equal", adjustable="datalim")
     fig.tight_layout()
     fig.canvas.draw()
@@ -94,8 +95,8 @@ def main():
             for p, q in zip(trail[:-1], trail[1:]):
                 cv2.line(img, tuple(int(v) for v in p), tuple(int(v) for v in q), (0, 165, 255), 6)
             img = cv2.resize(img, (int(img.shape[1] * H / img.shape[0]), H))
-            cv2.putText(img, f"phone clip: {skill} the {obj}  ({src})", (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
-            right = panel(sv, k, tpl, f"{skill}: what the reward keeps from this clip", (720, H))
+            cv2.putText(img, NAMES.get(skill, skill), (15, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (255, 255, 255), 2)
+            right = panel(sv, k, tpl, "", (720, H))
             frames.append(np.concatenate([img, right], 1))
         frames += [frames[-1]] * 10                     # hold the last frame 1 s
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)

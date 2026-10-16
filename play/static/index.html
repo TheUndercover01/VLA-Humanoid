@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive"><title>Build a sentence</title>
+<style>
+:root{--bg:#f6f1e7;--fg:#211d19;--muted:#726657;--accent-warm:#d9480f;--accent-hi:#e8bd2a;--card:#fffdf8;--shadow:rgba(33,29,25,.9);--accent-bold:#1e4fa3}
+@media(prefers-color-scheme:dark){:root{--bg:#18140f;--fg:#efe6d6;--muted:#a89b89;--accent-warm:#ff8a50;--accent-hi:#f2cf4e;--card:#241e17;--shadow:rgba(0,0,0,.9);--accent-bold:#8fb6ff}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}main{max-width:1040px;margin:0 auto;padding:20px 16px 40px}h1{margin:0 0 4px}
+.tabs{display:flex;flex-wrap:wrap;gap:.4rem;margin:1.2rem 0 0}
+.pg{display:grid;grid-template-columns:1.35fr 1fr;gap:1.4rem;align-items:start;margin:.8rem 0 2rem}
+@media(max-width:820px){.pg{grid-template-columns:1fr}}
+.pg .box{background:var(--card);border:3px solid var(--fg);border-radius:6px;box-shadow:5px 5px 0 var(--shadow);padding:.9rem}
+.pg .view{width:100%;aspect-ratio:2/1;background:#000;border-radius:3px;object-fit:contain;display:block}
+.pg .cams{display:flex;justify-content:space-between;font:.72rem "Space Grotesk",sans-serif;color:var(--muted);margin-top:.25rem}
+.pg .lab{font:700 .72rem "Space Grotesk",sans-serif;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:.9rem 0 .35rem}
+.pg .lab:first-child{margin-top:0}
+.btns{display:flex;flex-wrap:wrap;gap:.4rem}
+.pg button,.tabs button,.pg select{font:600 .85rem "Space Grotesk",sans-serif;background:var(--card);color:var(--fg);border:2px solid var(--fg);border-radius:3px;padding:.3rem .65rem;cursor:pointer;box-shadow:2px 2px 0 var(--shadow)}
+.pg button:hover:not(:disabled),.tabs button:hover{background:var(--accent-hi);color:#211d19}
+.pg button:disabled{opacity:.4;cursor:default;box-shadow:none}
+.pg button.go,.tabs button.on{background:var(--fg);color:var(--bg)}
+.pg .sent{min-height:3rem;padding:.5rem;border:2px dashed var(--fg);border-radius:3px;font-size:.95rem;line-height:1.9}
+.pg .cmd{display:inline-block;padding:.05rem .5rem;border:2px solid var(--fg);border-radius:3px;background:var(--card)}
+.pg .cmd.done{background:var(--accent-hi);color:#211d19}
+.pg .cmd.cur{outline:3px solid var(--accent-bold);outline-offset:1px}
+.pg .empty{color:var(--muted)}
+.pg .meter{height:.6rem;border:2px solid var(--fg);border-radius:3px;overflow:hidden;background:var(--card)}
+.pg .meter>div{height:100%;width:0;background:var(--accent-warm);transition:width .1s}
+.pg .row{display:flex;justify-content:space-between;align-items:center;gap:.6rem;font:.8rem "Space Grotesk",sans-serif;color:var(--muted);margin-top:.35rem}
+.pg .row b{color:var(--fg)}
+.pg .msg{min-height:1.2rem;margin-top:.6rem;font:.85rem "Space Grotesk",sans-serif;color:var(--accent-warm)}
+.pg .note{min-height:1.3rem;margin-top:.6rem;font:.9rem "Space Grotesk",sans-serif;color:var(--fg)}
+.pg .small{font-size:.8rem;color:var(--muted);margin:.8rem 0 0}
+.pg .board{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;max-width:15rem;margin:.3rem 0}
+.pg .board .sq{aspect-ratio:1;font:800 1.8rem "Space Grotesk",sans-serif;padding:0}
+.pg .stack{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:5rem;padding:.4rem;border:2px dashed var(--fg);border-radius:3px}
+.pg .piece{height:1.15rem;display:flex;align-items:center;justify-content:center;font:.7rem "Space Grotesk",sans-serif;border:2px solid var(--fg);color:#211d19}
+.pg .piece.tile{width:5.5rem;background:#c79bef;border-radius:2px}
+.pg .piece.disc{width:5rem;background:#6bb4f2;border-radius:.6rem}
+.pg input[type=range]{width:100%}
+
+</style></head><body><main><h1>Build a sentence</h1>
+<div class="tabs">
+  <button id="tab-build" class="tab on">Build a sentence</button>
+  <button id="tab-ttt" class="tab">Tic-tac-toe</button>
+  <button id="tab-tower" class="tab">Tower duel</button>
+</div>
+<div class="pg">
+  <div class="box">
+    <img id="view" class="view" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+    <div class="cams"><span>front camera</span><span>wrist camera</span></div>
+    <div class="lab">What the robot believes</div>
+    <div id="live" class="sent"><span class="empty">The robot is idle.</span></div>
+    <div class="row"><span>"(done)" written by the robot</span><b id="marks">–</b></div>
+    <div class="row"><span>Really done? (simulator check)</span><b id="simdone">–</b></div>
+    <div class="lab">Its "this step is done" signal</div>
+    <div class="meter"><div id="flag"></div></div>
+    <div id="backend" class="msg"></div>
+  </div>
+  <div class="box">
+    <div id="panel-build">
+      <div class="lab">Build a sentence</div>
+      <div id="moves" class="btns"></div>
+      <div class="lab">Your sentence</div>
+      <div id="draft" class="sent"><span class="empty">Click commands above.</span></div>
+      <div class="btns" style="margin-top:.7rem">
+        <button id="run" class="go" disabled>Run</button>
+        <button id="undo" disabled>Undo</button>
+        <button id="clear" disabled>Clear</button>
+        <button id="scene">New scene</button>
+      </div>
+      <p class="small">Each run starts from a random layout.</p>
+    </div>
+    <div id="panel-ttt" hidden>
+      <div class="lab">You are O (cylinders). The robot is X (cubes).</div>
+      <div id="board" class="board"></div>
+      <div class="row"><span>Robot level</span>
+        <select id="ttt-diff"><option value="easy">easy</option><option value="normal" selected>normal</option><option value="hard">hard (never loses)</option></select></div>
+      <div id="ttt-note" class="note"></div>
+      <div class="btns" style="margin-top:.6rem"><button id="ttt-new">New game</button></div>
+      <p class="small">A separate program picks the robot's square; the robot only hears "pick up the cube, then put the cube on the target".</p>
+    </div>
+    <div id="panel-tower" hidden>
+      <div class="lab">The tower (top first)</div>
+      <div id="stack" class="stack"></div>
+      <div id="tower-note" class="note"></div>
+      <div class="lab">Where to put your tile, in cm from the middle of the piece below</div>
+      <div class="row"><span>left ◀ ▶ right</span><b id="dyv">0</b></div>
+      <input id="dy" type="range" min="-4.5" max="4.5" step="0.5" value="0">
+      <div class="row"><span>back ◀ ▶ front</span><b id="dxv">0</b></div>
+      <input id="dx" type="range" min="-4.5" max="4.5" step="0.5" value="0">
+      <div class="btns" style="margin-top:.6rem"><button id="place" class="go" disabled>Place my tile</button><button id="tower-new">New game</button></div>
+      <p class="small">You add a tile, the robot adds a disc. Whoever topples the tower loses.</p>
+    </div>
+    <div id="msg" class="msg"></div>
+    <div class="row"><b id="state">Connecting…</b><span id="left"></span></div>
+  </div>
+</div>
+
+</main><script src="/playground.js"></script></body></html>

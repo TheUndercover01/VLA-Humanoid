@@ -1,0 +1,56 @@
+<div class="tabs">
+  <button id="tab-build" class="tab on">Build a sentence</button>
+  <button id="tab-ttt" class="tab">Tic-tac-toe</button>
+  <button id="tab-tower" class="tab">Tower duel</button>
+</div>
+<div class="pg">
+  <div class="box">
+    <img id="view" class="view" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+    <div class="cams"><span>front camera</span><span>wrist camera</span></div>
+    <div class="lab">What the robot was told, and what it believes it has done</div>
+    <div id="live" class="sent"><span class="empty">The robot is idle.</span></div>
+    <div class="row"><span>"(done)" written by the robot</span><b id="marks">–</b></div>
+    <div class="row"><span>End result reached (simulator check, held 0.5 s)</span><b id="simdone">–</b></div>
+    <div class="lab">Its done flag (a mark is written at 0.85 for 0.5 s)</div>
+    <div class="meter"><div id="flag"></div></div>
+    <div id="backend" class="msg"></div>
+  </div>
+  <div class="box">
+    <div id="panel-build">
+      <div class="lab">Build a sentence</div>
+      <div id="moves" class="btns"></div>
+      <div class="lab">Your sentence</div>
+      <div id="draft" class="sent"><span class="empty">Click commands above.</span></div>
+      <div class="btns" style="margin-top:.7rem">
+        <button id="run" class="go" disabled>Run</button>
+        <button id="undo" disabled>Undo</button>
+        <button id="clear" disabled>Clear</button>
+        <button id="scene">New scene</button>
+      </div>
+      <p class="small">Each run starts from a random layout.</p>
+    </div>
+    <div id="panel-ttt" hidden>
+      <div class="lab">You are O (cylinders). The robot is X (cubes).</div>
+      <div id="board" class="board"></div>
+      <div class="row"><span>Robot level</span>
+        <select id="ttt-diff"><option value="easy">easy</option><option value="normal" selected>normal</option><option value="hard">hard (never loses)</option></select></div>
+      <div id="ttt-note" class="note"></div>
+      <div class="btns" style="margin-top:.6rem"><button id="ttt-new">New game</button></div>
+      <p class="small">A separate program picks the robot's square; the robot only hears "pick up the cube, then put the cube on the target".</p>
+    </div>
+    <div id="panel-tower" hidden>
+      <div class="lab">The tower (top first)</div>
+      <div id="stack" class="stack"></div>
+      <div id="tower-note" class="note"></div>
+      <div class="lab">Where to put your tile, in cm from the middle of the piece below</div>
+      <div class="row"><span>left ◀ ▶ right</span><b id="dyv">0</b></div>
+      <input id="dy" type="range" min="-4.5" max="4.5" step="0.5" value="0">
+      <div class="row"><span>back ◀ ▶ front</span><b id="dxv">0</b></div>
+      <input id="dx" type="range" min="-4.5" max="4.5" step="0.5" value="0">
+      <div class="btns" style="margin-top:.6rem"><button id="place" class="go" disabled>Place my tile</button><button id="tower-new">New game</button></div>
+      <p class="small">You add a tile, the robot adds a disc. Whoever topples the tower loses.</p>
+    </div>
+    <div id="msg" class="msg"></div>
+    <div class="row"><b id="state">Connecting…</b><span id="left"></span></div>
+  </div>
+</div>

@@ -51,7 +51,8 @@ def _vocab():
     if MULTI:       # 8 Oct: made-up objects; the held-out object and pairs never appear in the padding either
         return multi_vocab(holdout=True)
     return [command_prompt(*c) for c in [("pick-lift", 0, 2), ("pick-lift", 1, 2), ("place-down", 0, 0), ("place-down", 1, 0),
-                                         ("place-down", 0, 1), ("place-down", 1, 1), ("push", 0, 0), ("push", 1, 0)]]
+                                         ("place-down", 0, 1), ("place-down", 1, 1), ("push", 0, 0)] +
+                                        ([] if __import__("os").environ.get("VLA_CUBE_PUSH_ONLY") else [("push", 1, 0)])]   # 14 Oct: no cylinder push
 
 
 VOCAB = _vocab()
@@ -71,6 +72,9 @@ def main():
     ap.add_argument("--history", type=int, default=0,
                     help="add observation.images.front_past: the front image this many frames earlier (SmolVLA uses one frame)")
     ap.add_argument("--shard", default="", help="i/n: build only every n-th episode starting at i (parallel builds, then aggregate)")
+    ap.add_argument("--contrast", type=int, default=0, help="14 Oct, --prompt_mode marks: every command's last N done frames are added once more, as a "
+                    "short extra episode whose sentence already carries that command's (done) and with done = 0: same image, different text, different flag")
+    ap.add_argument("--progress", action="store_true", help="13 Oct, --prompt_mode marks: the command being worked on also carries \"(in progress)\"")
     ap.add_argument("--prompt_mode", default="step", choices=["step", "sequence", "memory", "marks"])
     ap.add_argument("--pad", default="legacy", choices=["legacy", "even"], help="memory/marks padding, see the docstring")
     ap.add_argument("--max_cmds", type=int, default=8, help="--pad even: the longest padded sentence (commands); the real ones cover k = 0..max_cmds - 1")
@@ -169,7 +173,13 @@ def main():
                     add(ep, range(T), lambda t: text, done, count)
                 else:                      # marks: the commands before number k + 1 carry "(done)", no count in the state
                     seq = pre + cmds + suf
-                    add(ep, range(T), lambda t: marked_sentence(seq, int(count[t])), done)
+                    add(ep, range(T), lambda t: marked_sentence(seq, int(count[t]), args.progress), done)
+                    if args.contrast:
+                        for j in range(int(base_count.max()) + 1):
+                            fr = [t for t in range(T) if done[t] > 0 and int(base_count[t]) == j][-args.contrast:]
+                            if len(fr) >= 2:
+                                zeros = np.zeros(T, np.float32)
+                                add(ep, fr, lambda t: marked_sentence(seq, int(count[t]) + 1, args.progress), zeros)
             continue
         whole = ", then ".join(dict.fromkeys(prompts))         # the episode's commands in order
         add(ep, range(T), lambda t: whole)
