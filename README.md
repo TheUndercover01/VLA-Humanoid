@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><b>Project page (all videos)</b></a> · <a href="#results">Results</a> · <a href="#the-idea-in-five-steps">How it works</a> · <a href="#the-memory-problem">Memory</a> · <a href="#what-didnt-work">What didn't work</a> · <a href="#reproduce-it">Run it</a> · <a href="PROGRESS.md">Full log</a>
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><b>Project page (all videos)</b></a> · <a href="#results">Results</a> · <a href="#the-idea-in-five-steps">How it works</a> · <a href="#the-memory-problem">Memory</a> · <a href="#what-didnt-work">What didn't work</a> · <a href="#reproduce-it">Run it</a>
 </p>
 
 > [!IMPORTANT]
@@ -281,9 +281,7 @@ What did work, with the numbers:
 | ✓ | **More push data.** | Push 23 → 44 when push frames went 12% → 27% |
 
 <details>
-<summary>Earlier attempts, kept in the log</summary>
-
-See [PROGRESS.md](PROGRESS.md):
+<summary>Earlier attempts</summary>
 
 - A motion-vocabulary action space (skill + VAE latent).
 - Fine-tuning SmolVLA directly on replayed clips (B1, on scripted stand-in clips): push 16, lift 0, combined tasks 0.
@@ -329,7 +327,7 @@ scripts/finetune_real_ref.sh   # the last 8K steps -> ours_cyl_marks_realref (th
 scripts/length_curve.sh; scripts/done_study.sh; scripts/eval_edits.sh; scripts/perturb_study.sh; scripts/headline_videos.sh
 ```
 
-Results: [results/comparative/](results/comparative/) (tables, per-episode CSVs, loss and teacher curves). The full log with the cause of every number: [PROGRESS.md](PROGRESS.md).
+Results: [results/comparative/](results/comparative/) (tables, per-episode CSVs, loss and teacher curves).
 
 ## Prior work
 
