@@ -30,7 +30,7 @@ Nothing splits it up, and the simulator never tells the policy which command it'
 
 ## Results
 
-Success rate (%) over 100 held-out table layouts per task. A run succeeds only if the simulator registers every command of the sentence as completed, in order (§3).
+Success rate (%) over 100 held-out table layouts per task. A run succeeds only if the simulator registers every command of the sentence as completed, in order (see [Experimental setup](#3--experimental-setup)).
 
 | Task, and the sentence the robot gets | Steps | Student (2 RGB cameras + sentence) | Teacher (privileged state, told the current step) |
 | :--- | :---: | ---: | ---: |
@@ -68,7 +68,7 @@ Training episodes contain at most 2 commands; every row with 3 or more is out of
 
 ## 1 · Hypotheses
 
-The question: if a robot is only ever shown single skills, can it carry out a multi-step instruction nobody demonstrated?
+The question: if a robot is only ever shown single skills, can it carry out a multi-step instruction I never demonstrated?
 
 - **H1. Single-skill clips are enough to learn the skills.** A reward built only from how the object moves in my phone clips can train an RL policy on every skill and on the handoff from one skill to the next.
 - **H2. Skills plus handoffs compose.** A VLA distilled from a teacher that only ever ran one or two commands per episode can do longer sentences at inference, because a long task is just more handoffs of kinds it has seen.
@@ -87,23 +87,22 @@ The question: if a robot is only ever shown single skills, can it carry out a mu
 </p>
 <p align="center"><sub>Push · Pick up · Put down · Put on the other object</sub></p>
 
-43 usable phone clips of me with a real cube and a crisps can: 12 pushes, 10 pick-ups, 21 put-downs, never two skills in a row. ArUco markers on each object (cube 1–5, can 0), the target (11) and a calibration marker (13) give each object's position and orientation on the table in every frame. I track the object and not my hand, because a hand and a two-finger gripper grab things differently; what carries over is where the object goes.
-
-### 2.2 Reward from the clips
+43 usable phone clips of me with a real cube and a crisps (only original flavour was available at Tesco lol) can: 12 pushes, 10 pick-ups, 21 put-downs, I never record two skills in a row. ArUco markers on each object, the target and a calibration marker give each object's position and orientation on the table in every frame.
+### 2.2 How is the reward inferred from the clips?
 
 <p align="center">
   <img src="results/site_media/real_clip_to_template.gif" alt="A phone clip with tracked markers next to the template the reward uses" width="100%">
 </p>
 <p align="center"><sub>The tracked path (orange) and the template the reward uses (green).</sub></p>
 
-Dense, object-centric keypoint reward. The 8 corner keypoints of the commanded object are tracked against a per-skill reference trajectory (start → goal), and the reward is the keypoints' progress along it inside a 3 cm tube (3 cm ≈ the median deviation of my clips from their mean path). Taken from the clips: lift height (≈20 cm), place height, push direction, allowed yaw change. Set by hand: the completion test (keypoint error < ≈2 cm, object speed < 0.1 m/s, held 0.3 s), a per-step time penalty and a per-command completion bonus. There is no grasp term.
+Dense, object-centric keypoint reward. The 8 corner keypoints of the commanded object are tracked against a per-skill reference trajectory (start → goal), and the reward is the keypoints' progress along it inside a 3 cm tube (3 cm ≈ the median deviation of my clips from their mean path). Taken from the clips: lift height (≈20 cm), place height, push direction, allowed yaw change. Set by hand: the completion test (keypoint error < ≈2 cm, object speed < 0.1 m/s, held 0.3 s), a per-step time penalty and a per-command completion bonus.
 
 Two changes on top of that:
 
-- **Exploration.** With an object-only reward the signal is zero until first contact; a run from the home pose learned nothing in 504 iterations. I prepend a gripper → object leg (straight-line reference from the TCP to the object centre, same 3 cm tube) and randomize the initial arm configuration every episode.
-- **Reward hacking.** The teacher then solved *push* by grasp-and-carry (85 of 100 push episodes lifted the object > 3 cm). A lift penalty that is active only during push commands removed it (0 of 100). This is the "no-lift" in the model name.
+- **Exploration.** With an object-only reward the signal is zero until first contact; a run from the robot initial pose learned absolutely nothing for 504 iterations :(. I prepend a gripper → object leg (straight-line reference from the TCP to the object centre, same 3 cm tube) and randomize the initial arm configuration every episode.
+- **Reward hacking.** The teacher then solved *push* by grasp-and-carry (85 of 100 push episodes lifted the object > 3 cm). A lift penalty that is active only during push commands removed it (0 of 100). 
 
-Per-task hand-written rewards were tried first and all were exploited (§4.5). The keypoint reward is embodiment-agnostic and shared across every combination of skills.
+Before this reward I tried writing a separate reward by hand for each task, and the RL policy found a loophole in every one. Rewarding grasping and carrying made it open and close the gripper right at the release threshold to collect both rewards, without ever finishing. Rewarding distance to the goal made it push the cube onto the target instead of lifting it (see [What didn't work](#45-what-didnt-work)). The keypoint reward only scores where the object goes, so it doesn't depend on the robot's body, and one reward covers every skill and every combination of them.
 
 ### 2.3 RL teacher
 
@@ -222,13 +221,13 @@ Of 100 runs, the failures stop at step 5, picking up the cylinder (25), step 4 (
 ## 5 · Limitations
 
 - **"Done" has no time dimension, so the robot never learns to let go.** A step is complete when the object reaches its goal pose and comes to rest. The test never looks at the gripper (on purpose: object-level, any embodiment), and it never asks the object to *stay* there once the next step starts. Releasing earns nothing. Example: *pick up the cube, put the cube on the target, pick up the cylinder, put the cylinder on the cube.* The cube reaches the target and gets marked done while still in the gripper. The robot then drags it toward the cylinder, opens whenever it happens to, grasps the cylinder and puts it on the cube wherever the cube now is. Object-centric goals need a spatio-temporal part: where the object has to be, and for how long (until the task ends or a later step moves it). The scoring has the same blind spot. A step counts once its result holds for 0.2 s, so this run can still score as a success.
-- **8 steps: 0 of 100.** The done signal follows the image, not the sentence. On the 8-step task, 60 of 100 runs stop at exactly 4 steps in order while the marks have already reached 8 of 8. The scene after step 4 looks like a finished 4-step task, so the model marks the rest done (4.3).
+- **8 steps: 0 of 100.** The done signal follows the image, not the sentence. On the 8-step task, 60 of 100 runs stop at exactly 4 steps in order while the marks have already reached 8 of 8. The scene after step 4 looks like a finished 4-step task, so the model marks the rest done (see [section 4.3](#43-h3-memory-in-the-sentence-works-and-its-the-bottleneck-supported-with-a-limit)).
 - **No undo.** A wrong "(done)" is never taken back, so the skipped step is never redone. A self-check that erases wrong marks finds them (93–100% correct), but the robot doesn't complete the step on the second try.
-- **The headline uses a loose check.** Positions within 5 cm and results held 0.2 s. With 1.5 cm / 0.5 s the 6-step score is 12 in order, not 40 (§3).
+- **The headline uses a loose check.** Positions within 5 cm and results held 0.2 s. With 1.5 cm / 0.5 s the 6-step score is 12 in order, not 40 (see [Experimental setup](#3--experimental-setup)).
 - **No separate test set.** The final model and the check were both chosen on the same 100 validation layouts the numbers are reported on.
 - **Cylinder and pushing are weak** (59 each, the teacher gets 100). Grasped too high, the cylinder tips, and once it's on its side it can't be picked up (never in the data). Most sentences that start with the cylinder fail.
 - **The student is 3–54 points behind its teacher** on every task. The teacher sees the true object state; the student has two cameras.
-- **Not every part of the reward comes from the clips.** The completion thresholds, time penalty, completion bonus and the gripper→object leg are set by hand.
+- **Not every part of the reward comes from the clips.** The completion thresholds, time penalty, completion bonus and the gripper→object leg are set by hand. So is the no-lift penalty on push commands: the clips never show a push turning into a lift, but nothing in them says "don't lift" either, so I added it by hand after the teacher learned to grasp and carry instead of pushing.
 - **One scene, in simulation.** One cube, one cylinder, a fixed target, two fixed cameras. Anything new on the table hurts until it's in the data.
 - **The tic-tac-toe robot** in the games is a separate fine-tune, not the final model.
 
