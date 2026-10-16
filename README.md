@@ -22,10 +22,10 @@ Nothing splits it up, and the simulator never tells the policy which command it'
 
 <p align="center"><b>Click the buttons below to play with the robot live and to see the project page on my website.</b></p>
 <p align="center">
-  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/play/"><img src="docs/btn_play.svg" alt="Play with the robot live" width="300"></a>
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/play/"><img src="docs/button_play.svg" alt="Play with the robot live" width="300"></a>
 </p>
 <p align="center">
-  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><img src="docs/btn_project.svg" alt="Project page" width="300"></a>
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><img src="docs/button_project.svg" alt="Project page" width="300"></a>
 </p>
 
 ## Results
@@ -43,8 +43,8 @@ Success rate (%) over 100 held-out table layouts per task. A run succeeds only i
 | pick up cylinder → place on cube | 2 | 81 | 100 |
 | push cylinder to target → pick up cube → place on cylinder | 3 | 62 | 94 |
 | **pick up cube → place on cylinder → pick up cube → place on target** | **4** | **81** | 100 |
-| **the 4 above → pick up cylinder → place on cube** (the example sentence) | **6** | **40** | 94 |
-| the 4 above, twice | 8 | 0 | 100 |
+| **pick up cube → place on cylinder → pick up cube → place on target → pick up cylinder → place on cube** (the example sentence) | **6** | **40** | 94 |
+| pick up cube → place on cylinder → pick up cube → place on target → pick up cube → place on cylinder → pick up cube → place on target | 8 | 0 | 100 |
 
 Training episodes contain at most 2 commands; every row with 3 or more is out of distribution in length. Final model: `ours_cyl_marks_nolift`.
 
