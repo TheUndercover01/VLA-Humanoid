@@ -63,7 +63,7 @@ Training episodes contain at most 2 commands; every row with 3 or more is out of
 **Play with it.** The robot runs live on the [play page](https://theundercover01.github.io/ayushdeshmukh/projects/play/) when my GPU is on. Three games:
 
 - **Sabotage the robot.** It gets a 2-, 4- or 6-step task and you get one sabotage per round: knock the object away or write a fake "(done)". You win if the task isn't really done when it stops. Winning takes understanding how its memory works.
-- **Tic-tac-toe.** You're O; the robot has to physically place each X. This robot is a fine-tune of an earlier student, first on the nine board squares, then on 2,000 recordings with flat X / O pieces on the board, which took placement with pieces from 38 to 97 of 100.
+- **Tic-tac-toe.** You're O; the robot has to physically place each X. This robot is a fine-tune of an earlier student, first on the nine board squares, then on 2,000 recordings with flat X / O pieces on the board (had to add extra recordings cuz the perception kept messing up the robot actions).
 - **Build a sentence.** Write up to ten commands and watch it work through them.
 
 ## 1 · Hypotheses
@@ -104,15 +104,13 @@ Two changes on top of that:
 
 Before this reward I tried writing a separate reward by hand for each task, and the RL policy found a loophole in every one. Rewarding grasping and carrying made it open and close the gripper right at the release threshold to collect both rewards, without ever finishing. Rewarding distance to the goal made it push the cube onto the target instead of lifting it (see [What didn't work](#45-what-didnt-work)). The keypoint reward uses the same formula for every command; only the template changes. There are three templates, one per skill (push, pick up, put down), each is measured from the clips. The current command picks the template and fills in the rest: *put the cube on the cylinder* uses the put-down template, applied to the cube, ending on top of the cylinder. Chaining commands just switches templates. It only scores where the object goes, so it doesn't depend on the robot's body.
 
-**You might be wondering how I make sure no two commands** The reward scores only the current command, so the order has to come from how the episodes are sampled. Every training episode starts with the hand empty (a random arm pose; in 10% one object already stacked on the other), so the first command is always a pick-up or a push, never a put-down. The second command follows a fixed rule: after *pick up X* comes *put X down* (on the target or on the other object); after a put-down or a push comes a pick-up. So the teacher never sees two pushes, a push after a pick-up, or a put-down of something it isn't holding. The long evaluation sentences and the sentence builder in the games follow the same rules. The random commands padded into training sentences don't, but they are never carried out.
+**You might be wondering how I make sure no two commands** Every training episode starts with the hand empty (a random arm pose; in 10% one object already stacked on the other), so the first command is always a pick-up or a push. The second command follows a fixed rule: after *pick up X* comes *put X down* (on the target or on the other object); after a push comes a pick-up. So the teacher never sees two pushes, a push after a pick-up, or a put-down of something it isn't holding. The long evaluation sentences and the sentence builder in the games follow the same rules.
 
 ### 2.3 RL teacher
 
-A Franka Panda in Isaac Lab, PPO with 16,384 simulated robots in parallel, 1000 iterations. The teacher sees the exact object positions, the next point on the path and the current command. Each episode has one or two commands, so it learns every skill and the handoff between two of them.
+A Franka Panda in Isaac Lab, PPO with 16,384 simulated robots in parallel, 1000 iterations. The teachers observations are: the exact object positions, the next point on the path and the current command. Each episode has one or two commands, so it learns every skill and the handoff between two of them.
 
 RL is cheap here because the teacher sees everything. Running RL directly on a 450M-parameter model that only sees images would be far slower, so the teacher does the trial and error, and distillation turns it into a data source: I can record as many labelled episodes as I want, from any layout.
-
-One problem showed up at distillation time. PPO learned "bang-bang" control: 30 to 55% of its actions sat at the limits and flipped direction from one step to the next. That works for the teacher but looks like noise to a model trying to copy it, and the VLA fit those actions no better than predicting the average. The fix was to make the arm move smoothly: it executes a running average of the teacher's commands (95% previous, 5% new), and the student learns the motion the arm actually made.
 
 ### 2.4 Distillation
 
@@ -120,13 +118,19 @@ SmolVLA, starting from the public `smolvla_base` weights, trained for 32K steps 
 
 The 4,500 are split 3,000 + 1,500 on purpose. The 3,000 are *paired*: every scene is recorded twice, once with "the cube" in the sentence and once with "the cylinder". The images are the same, so the only way to know which object to move is to read the sentence (in an earlier version this took picking the right object from 45 to 80 of 100). The extra 1,500 are pushes, the weakest skill; in an earlier version more push data took push from 23 to 44.
 
+**Smoothing the teacher first.** The RL teacher learned jerky control: at each step it often slams a motion command all the way one way, then all the way the other. The arm still gets where it needs to go, so the teacher works. But to a student copying it, the commands jump back and forth almost at random, and the VLA learned nothing better than the average command. The fix: the arm doesn't carry out each new command directly. Every step it moves only 5% of the way toward the new command and keeps 95% of its previous motion. The jerky commands blur into one smooth motion, and the student learns to copy that smooth motion instead. The teacher is trained with this smoothing on, so it learns to work with it. A simpler option I didn't try (just hit me): keep the teacher as it was and label each frame with how the arm actually moved, not with what the policy asked for. The arm can't follow a command that flips every step, so its real motion is already smoother, and the teacher wouldn't need retraining.
+
 ### 2.5 Memory: "(done)" marks in the sentence
 
-The model has one extra output, "is the current step done?". In training it is 1 for the half-second before the teacher moved on to its next command. At run time, when it stays above 0.85 for half a second, "(done)" is written after the current command, and the next time the model reads:
+The model has one extra output, "is the current step done?". In training it is 1 for the half-second before the teacher moved on to its next command. At inference, when it stays above 0.85 for half a second, "(done)" is written after the current command, and the next time the model reads:
 
 > ~~pick up the cube~~ **(done)**, then ~~put the cube on the cylinder~~ **(done)**, then **pick up the cube** ← now, then put the cube on the target
 
-The first command without a mark is the one to do. Training episodes have only one or two real commands, so sentences are padded with up to 10 commands, some already marked, and every position shows up.
+The first command without a mark is the one to do. But a training episode has only one or two real commands, while a test sentence has up to eight. So in training the real commands are hidden inside a longer sentence of up to 10: random commands before them, already marked "(done)", and random ones after. For an episode that really does *pick up the cube, then put the cube on the target*, the student might read:
+
+> push the cube to the target **(done)**, then pick up the cylinder **(done)**, then put the cylinder on the cube **(done)**, then **pick up the cube**, then put the cube on the target, then pick up the cylinder
+
+The number of commands in front is random, so the current command shows up at every position from 1 to 10 equally often. An earlier version padded at most 3 in front; it never saw a current command at position 6, and scored 5 of 100 on the 6-step task.
 
 <p align="center">
   <img src="results/site_media/nomarks_stuck.gif" alt="Marks off: stuck on command one" width="49%">
