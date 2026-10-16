@@ -115,6 +115,7 @@ def main():
     sub = re.search(r'<p align="center"><b>(.*?)</b></p>', md).group(1)
     q = re.search(r'<p align="center"><i>(.*?)</i></p>', md).group(1)
     body = md[md.index("<p align=\"center\">\n  <img"):]          # from the hero video on
+    body = body[:body.index("\n## Reproduce")]                       # 16 Oct: Reproduce and Related work stay in the README only
 
     # the two README buttons -> one big "play" button (the page itself is the project page)
     body = re.sub(r'<p align="center"><b>Click the buttons below.*?</p>\s*<p align="center">.*?</p>\s*<p align="center">.*?</p>',

@@ -257,24 +257,29 @@ Of 100 runs, the failures stop at step 5, picking up the cylinder (25), step 4 (
 
 ## Reproduce
 
-Isaac Lab 2.3.2 / Isaac Sim 5.1, LeRobot 0.6.2, OpenCV with ArUco.
+Two Python environments: Isaac Lab 2.3.2 / Isaac Sim 5.1 (simulation, RL) and LeRobot 0.6.2 (SmolVLA). Two 24 GB GPUs.
+
+The repo includes the tracked clips (`data/processed/clips_real/`, 43 clips), the reward template built from them, and the state bank file the simulator loads. The raw phone videos and the trained weights are not included.
 
 ```bash
-# clips -> reward template
-python -m handtrack.track_objects <clip>
-python -m handtrack.make_clips <root> --calib ... --out data/processed/clips_real
+# 1. clips -> reward template (rebuilding it from the included clips gives the same file)
 python -m motion.keypoint_ref --clips data/processed/clips_real --straight --out data/processed/keypoint_ref_real_straight.npz
 
-# teacher -> recordings -> student -> eval
-scripts/run_nolift_pipeline.sh
+#    or from your own phone videos: cut the takes, calibrate, track the ArUco markers
+python -m handtrack.cut_session <video> --out <clips>/<name>
+python -m handtrack.calibrate_session <clips> --f 2000 --out <clips>/session_calib.npz
+python -m handtrack.make_clips <clips> --calib <clips>/session_calib.npz --out data/processed/clips_real
 
-# eval with the loose check (student, teacher)
+# 2. teacher -> 4,500 recordings -> student -> evals (about 10 h)
+setsid nohup scripts/run_nolift_pipeline.sh > /dev/null 2>&1 < /dev/null &
+
+# 3. the loose check behind every number in this README
 NAME=ours_cyl_marks_nolift G=0 scripts/eval_cliptol_loose.sh
 G=0 scripts/eval_teacher_loose.sh
 
-# the live games
+# 4. the live games (the tic-tac-toe robot first needs scripts/run_ttt_pipeline.sh, then scripts/run_ttt_tiles_pipeline.sh)
 play/run_sabotage.sh start; play/run_builder.sh start; play/run_tictactoe.sh start ours_cyl_marks_ttt_tiles
-PUSH=1 play/run_tunnels.sh start; play/watchdog.sh
+PUSH=1 play/run_tunnels.sh start; setsid nohup play/watchdog.sh > /dev/null 2>&1 < /dev/null &
 ```
 
 | Step | Code |
@@ -286,7 +291,7 @@ PUSH=1 play/run_tunnels.sh start; play/watchdog.sh
 | Eval | `sim/eval_chains.py --learned_done --marks --whole_prompt` |
 | Games | `play/` |
 
-Paths in the scripts point to my machine (`/media/storage/...`); change them to yours.
+Paths in the scripts point to my machine; change them to yours: the cache and data folders (`C=`, `D=`), the LeRobot Python (`PY=`) and the Isaac Lab install (`ISAACLAB=` in `scripts/run_isaac.sh`).
 
 ## Related work
 
