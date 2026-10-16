@@ -157,6 +157,29 @@ On 8 commands the done flag fires whenever the cube is lifted and held still, so
 | "(in progress)" tag | no change |
 | Random pauses + same image under two sentences | flag stops firing; 4 commands 51 → 11 |
 
+## Where it still fails
+
+| Weakness | Now |
+| :--- | :--- |
+| **8 commands** | 0 of 100 in order. The done flag fires whenever an object is lifted and held still, whatever the command, so the marks run ahead and it stops after 4. The teacher does it 100/100. |
+| **6 commands** | 40 in order, 49 lenient. 25 runs fail at "pick up the cylinder"; 21 of 100 knock something over. |
+| **The cylinder** | pick up 59, to the target 77, onto the cube 81 (cube: 94–97). It tips easily. Sentences that start with the cylinder mostly fail. |
+| **Push** | 59 (teacher 100). |
+| **No undo** | A wrong "(done)" is never taken back; the skipped step is never redone. |
+| **Strict judge** | With a 1.5 cm / 0.5 s check the 6-command score is 12, not 40: put-downs are a little loose. |
+| **One scene** | One cube, one cylinder, one target, two fixed cameras, in simulation. Anything new on the table hurts until it's in the data: flat tic-tac-toe pieces dropped placement to 38/100, back to 97 after a fine-tune on recordings that show them. |
+| **Two models** | The games' tic-tac-toe robot is a separate fine-tune, not the final model. |
+
+## What I'd do next
+
+1. **A done judge.** A small separate model, image + sentence → "is the current command finished?", trained with frames of the *other* commands as negatives. The action model's flag reads the image, not the text.
+2. **RL on the student itself**, starting from the distilled model, on the long tasks. The teacher shows the skills are learnable; the student is 3–54 points behind it per task.
+3. **Let it undo a mark.** A self-check already works one way: 93–100% of the marks it erases really weren't done. It needs to also redo the step.
+4. **More cylinder data**, and a teacher that grasps it lower so it doesn't tip.
+5. **Varied scenes in the recordings** (distractors, textures, lighting), since one fine-tune on new pieces was enough to fix them.
+6. **One model for all**: fold the tic-tac-toe data into the final model.
+7. **A real robot.** The clips are real; the robot isn't yet.
+
 ## Run it
 
 Isaac Lab 2.3.2 / Isaac Sim 5.1, LeRobot 0.6.2, OpenCV with ArUco.
