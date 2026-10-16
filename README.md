@@ -60,7 +60,11 @@ Training episodes contain at most 2 commands; every row with 3 or more is out of
 </p>
 <p align="center"><sub>Left: <b>Cube to the target</b> (2 commands, 2×). Right: <b>Cube on the can</b> (2 commands, 2×).</sub></p>
 
-**Play with it.** The robot runs live on the [play page](https://theundercover01.github.io/ayushdeshmukh/projects/play/) when my GPU is on. *Sabotage the robot*: it gets a 2-, 4- or 6-step task and you get one sabotage per round (knock the object away or write a fake "(done)"); you win if the task isn't really done when it stops, and winning takes understanding how its memory works. *Tic-tac-toe*: you're O, the robot has to physically place each X. *Build a sentence*: up to ten commands. The tic-tac-toe robot is a fine-tune of an earlier student on the nine board squares and then on 2,000 recordings with flat X / O pieces on the board, which took placement with pieces from 38 to 97 of 100.
+**Play with it.** The robot runs live on the [play page](https://theundercover01.github.io/ayushdeshmukh/projects/play/) when my GPU is on. Three games:
+
+- **Sabotage the robot.** It gets a 2-, 4- or 6-step task and you get one sabotage per round: knock the object away or write a fake "(done)". You win if the task isn't really done when it stops. Winning takes understanding how its memory works.
+- **Tic-tac-toe.** You're O; the robot has to physically place each X. This robot is a fine-tune of an earlier student, first on the nine board squares, then on 2,000 recordings with flat X / O pieces on the board, which took placement with pieces from 38 to 97 of 100.
+- **Build a sentence.** Write up to ten commands and watch it work through them.
 
 ## 1 · Hypotheses
 
