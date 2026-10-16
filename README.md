@@ -66,9 +66,9 @@ Training episodes contain at most 2 commands; every row with 3 or more is out of
 
 <p align="center">
   <img src="results/site_media/c1.gif" alt="Cube to the target" width="49%">
-  <img src="results/site_media/c2.gif" alt="Cube on the can" width="49%">
+  <img src="results/site_media/c2.gif" alt="Cube on the cylinder" width="49%">
 </p>
-<p align="center"><sub>Left: <b>Cube to the target</b> (2 commands, 2×). Right: <b>Cube on the can</b> (2 commands, 2×).</sub></p>
+<p align="center"><sub>Left: <b>Cube to the target</b> (2 commands, 2×). Right: <b>Cube on the cylinder</b> (2 commands, 2×).</sub></p>
 
 **Play with it.** The robot runs live on the [play page](https://theundercover01.github.io/ayushdeshmukh/projects/play/) when my GPU is on. Three games:
 
@@ -97,7 +97,8 @@ The question: if a robot is only ever shown single skills, can it carry out a mu
 </p>
 <p align="center"><sub>Push · Pick up · Put down · Put on the other object</sub></p>
 
-43 usable phone clips of me with a real cube and a crisps (only original flavour was available at Tesco lol) can: 12 pushes, 10 pick-ups, 21 put-downs, I never record two skills in a row. ArUco markers on each object, the target and a calibration marker give each object's position and orientation on the table in every frame.
+43 usable phone clips of me with a real cube and a crisps (only original flavour was available at Tesco lol) can: 12 pushes, 10 pick-ups, 21 put-downs, never two skills in a row. ArUco markers on each object, the target and a calibration marker give each object's position and orientation on the table in every frame.
+
 ### 2.2 How is the reward inferred from the clips?
 
 <p align="center">
@@ -112,13 +113,13 @@ Two changes on top of that:
 - **Exploration.** With an object-only reward the signal is zero until first contact; a run from the robot initial pose learned absolutely nothing for 504 iterations :(. I prepend a gripper → object leg (straight-line reference from the TCP to the object centre, same 3 cm tube) and randomize the initial arm configuration every episode.
 - **Reward hacking.** The teacher then solved *push* by grasp-and-carry (85 of 100 push episodes lifted the object > 3 cm). A lift penalty that is active only during push commands removed it (0 of 100). 
 
-Before this reward I tried writing a separate reward by hand for each task, and the RL policy found a loophole in every one. Rewarding grasping and carrying made it open and close the gripper right at the release threshold to collect both rewards, without ever finishing. Rewarding distance to the goal made it push the cube onto the target instead of lifting it (see [What didn't work](#45-what-didnt-work)). The keypoint reward uses the same formula for every command; only the template changes. There are three templates, one per skill (push, pick up, put down), each is measured from the clips. The current command picks the template and fills in the rest: *put the cube on the cylinder* uses the put-down template, applied to the cube, ending on top of the cylinder. Chaining commands just switches templates. It only scores where the object goes, so it doesn't depend on the robot's body.
+Before this reward I tried writing a separate reward by hand for each task, and the RL policy found a loophole in every one. Rewarding grasping and carrying made it open and close the gripper right at the release threshold to collect both rewards, without ever finishing. Rewarding distance to the goal made it push the cube onto the target instead of lifting it (see [What didn't work](#45-what-didnt-work)). The keypoint reward uses the same formula for every command; only the template changes. There are three templates, one per skill (push, pick up, put down), each measured from the clips. The current command picks the template and fills in the rest: *put the cube on the cylinder* uses the put-down template, applied to the cube, ending on top of the cylinder. Chaining commands just switches templates. It only scores where the object goes, so it doesn't depend on the robot's body.
 
 **You might be wondering how I make sure the commands come in a sensible order:** no two pushes in a row, and no put-down before a pick-up. Every training episode starts with the hand empty (a random arm pose; in 10% one object already stacked on the other), so the first command is always a pick-up or a push. The second command follows a fixed rule: after *pick up X* comes *put X down* (on the target or on the other object); after a push comes a pick-up. So the teacher never sees two pushes, a push after a pick-up, or a put-down of something it isn't holding. The long evaluation sentences and the sentence builder in the games follow the same rules.
 
 ### 2.3 RL teacher
 
-A Franka Panda in Isaac Lab, PPO with 16,384 simulated robots in parallel, 1000 iterations. The teachers observations are: the exact object positions, the next point on the path and the current command. Each episode has one or two commands, so it learns every skill and the handoff between two of them.
+A Franka Panda in Isaac Lab, PPO with 16,384 simulated robots in parallel, 1000 iterations. The teacher's observations are: the exact object positions, the next point on the path and the current command. Each episode has one or two commands, so it learns every skill and the handoff between two of them.
 
 RL is cheap here because the teacher sees everything. Running RL directly on a 450M-parameter model that only sees images would be far slower, so the teacher does the trial and error, and distillation turns it into a data source: I can record as many labelled episodes as I want, from any layout.
 
@@ -150,7 +151,7 @@ The number of commands in front is random, so the current command shows up at ev
 
 ## 3 · Experimental setup
 
-100 validation layouts per task, the arm starts at home, the whole sentence is given once, and each run has 6 s per command plus 5 s. Two scores: **in order** (the headline: every command done, one after the other, as counted by the simulator; the robot's own marks don't count) and **lenient** (only the final scene, if acheved, is considered as success). For 6 steps: 40 in order, 49 lenient.
+100 validation layouts per task, the arm starts at home, the whole sentence is given once, and each run has 6 s per command plus 5 s. Two scores: **in order** (the headline: every command done, one after the other, as counted by the simulator; the robot's own marks don't count) and **lenient** (only the final scene: if it is achieved, the run counts as a success). For 6 steps: 40 in order, 49 lenient.
 
 | Command | Counts as done when |
 | :--- | :--- |
@@ -173,7 +174,7 @@ The teacher, trained only on the clip-derived reward, does every single skill 10
 
 The student composes tasks it never saw: 62 on 3 steps, 81 on 4, 40 on 6. But it drops to 0 on 8, while the teacher stays at 100. The skills transfer; something else limits length.
 
-### 4.3 H3: memory in the sentence works, and it's the bottleneck (supported, sort off)
+### 4.3 H3: memory in the sentence works, and it's the bottleneck (supported, sort of)
 
 From the camera alone you can't tell where you are. In the 6-step task the arm reaches for the cube in step 1 and again in step 3, and the scenes look almost the same; after step 4 the board looks exactly like a finished 4-step task. So the model needs some way to know which step it's on. I tried five, and scored each on the 4-step and the 6-step sentence (all commands done, in order, out of 100):
 
@@ -187,7 +188,7 @@ From the camera alone you can't tell where you are. In the 6-step task the arm r
 
 With nothing extra it can't tell step 1 from step 3 and keeps redoing the start. Old frames don't help: a frame from a second ago doesn't say which step that was either. The counter works for short sentences but had never seen a count of 5, so the 6-step task fails. The "(done)" marks beat everything, including the script, and the memory stays inside the model's own input. Only the last row is the final model; the others are earlier versions of the same pipeline.
 
-**Does the done task help?** The model really uses its marks (I tested on an earlier model with the same recipe). With marking switched off the 4-step task never finishes (0 of 50); with the first two marks written in advance it skips straight to step 3 and finishes 42 of 50.
+**Do the done marks help?** The model really uses its marks (I tested on an earlier model with the same recipe). With marking switched off the 4-step task never finishes (0 of 50); with the first two marks written in advance it skips straight to step 3 and finishes 42 of 50.
 
 <p align="center">
   <img src="results/site_media/knock_refetch.gif" alt="Knocked away after it was done" width="49%">
@@ -250,7 +251,7 @@ Of 100 runs, the failures stop at step 5, picking up the cylinder (25), step 4 (
 ## 5 · Limitations
 
 - **"Done" has no time dimension, so the robot never learns to let go.** A step is complete when the object reaches its goal pose and comes to rest. The test never looks at the gripper (which is a limitation of the object-centric reward), and it never asks the object to *stay* there once the next step starts. Releasing the object earns nothing. Example: *pick up the cube, put the cube on the target, pick up the cylinder, put the cylinder on the cube.* The cube reaches the target and gets marked done while still in the gripper. The robot then drags it toward the cylinder, opens whenever it happens to, grasps the cylinder and puts it on the cube wherever the cube now is. Object-centric goals need a spatio-temporal part: where the object has to be, and for how long (until the task ends or a later step moves it). The scoring has the same blind spot. A step counts once its result holds for 0.2 s, so this run can still score as a success.
-- **8 steps: 0 of 100.** The done signal follows the image, not the sentence. On the 8-step task, 60 of 100 runs stop at exactly 4 steps in order while the marks have already reached 8 of 8. The scene after step 4 looks like a finished 4-step task, so the model marks the rest done (see [section 4.3](#43-h3-memory-in-the-sentence-works-and-its-the-bottleneck-supported-sort-off)).
+- **8 steps: 0 of 100.** The done signal follows the image, not the sentence. On the 8-step task, 60 of 100 runs stop at exactly 4 steps in order while the marks have already reached 8 of 8. The scene after step 4 looks like a finished 4-step task, so the model marks the rest done (see [section 4.3](#43-h3-memory-in-the-sentence-works-and-its-the-bottleneck-supported-sort-of)).
 - **No undo.** A wrong "(done)" is never taken back, so the skipped step is never redone. A self-check that erases wrong marks finds them (93–100% correct), but the robot doesn't complete the step on the second try.
 - **The headline uses a loose check.** Positions within 5 cm and results held 0.2 s. With 1.5 cm / 0.5 s the 6-step score is 12 in order, not 40 (see [Experimental setup](#3--experimental-setup)).
 - **Cylinder and pushing are weak** (59 each, the teacher gets 100). Grasped too high, the cylinder tips, and once it's on its side it can't be picked up (never in the data). Most sentences that start with the cylinder fail.
@@ -260,10 +261,10 @@ Of 100 runs, the failures stop at step 5, picking up the cylinder (25), step 4 (
 ## 6 · Future work
 
 1. **A done judge.** A small separate model, image + sentence → "is the current step finished?", trained with frames from the *other* steps as negatives, so it has to read the text.
-3. **Undo.** A self-check already erases mostly wrong marks (93–100% of them really weren't done); it needs to redo the step too.
-4. **More cylinder data**, and a teacher that grasps it lower so it doesn't tip. Or a cleaner solution may be to lean to place the cylinder upright regarless of orientation.
-5. **Varied scenes** in the recordings (distractors, textures, lighting); one fine-tune on new pieces was enough to fix them.
-6. **A real robot.** The clips are real; the robot isn't yet.
+2. **Undo.** A self-check already erases mostly wrong marks (93–100% of them really weren't done); it needs to redo the step too.
+3. **More cylinder data**, and a teacher that grasps it lower so it doesn't tip. Or, cleaner: learn to stand the cylinder upright whatever its orientation.
+4. **Varied scenes** in the recordings (distractors, textures, lighting); one fine-tune on new pieces was enough to fix them.
+5. **A real robot.** The clips are real; the robot isn't yet.
 
 ## Reproduce
 
