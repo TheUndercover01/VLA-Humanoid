@@ -5,10 +5,11 @@
 <p align="center">
   <img src="results/site_media/restack_6of6.gif" alt="A Franka arm carries out six commands from one sentence, in order" width="70%">
 </p>
+<p align="center"><sub><b>Six commands from one sentence, in order (3×).</b> The example sentence: <i>"Pick up the cube, then put the cube on the cylinder, then pick up the cube, then put the cube on the target, then pick up the cylinder, then put the cylinder on the cube."</i> Left: front camera. Right: wrist camera.</sub></p>
 
-**Abstract.** Once we know how to pick something up, we can pick up almost anything. Once we also know how to put something down, we can do one after the other without ever practising the pair, because we know what the hand-off between two skills looks like. Can a small vision-language-action model (VLA) do the same: learn single skills and their hand-offs, then carry out long tasks it was never trained on?
+**Abstract.** People don't practise a sequence before doing it. Someone who knows how to pick an object up and how to put one down can already pick something up and put it somewhere else; switching from one skill to the next comes for free once both are known. Can a small vision-language-action model (VLA) learn the same way, from single skills and the switch between them, and then carry out long tasks it was never trained on?
 
-I filmed myself on my phone doing single skills (pushing, picking up, putting down) and never recorded two consecutive skills. From the tracked object paths I built a reward, trained an RL teacher in simulation on episodes of at most two commands, and distilled it into SmolVLA (450M), which sees only two cameras and one sentence listing every command. The hard part is memory: from the camera alone the model can't tell which step it is on, so it has to track its own progress through the sentence. It completes a 4-step task it never saw, in order, 81 times in 100, and a 6-step task 40 times.
+I filmed myself on my phone doing single skills (pushing, picking up, putting down) and never recorded two consecutive skills. From the tracked object paths I built a reward, trained an RL teacher in simulation on episodes of at most two commands, and distilled it into SmolVLA (450M), which sees only two cameras and one sentence listing every command. The hard part is memory: from the camera alone the model can't tell which step it is on, so it has to track its own progress through the sentence. It completes a 4-step task in order 81 times in 100 and a 6-step task 40 times. It was never trained on either task and never saw one done: **both are composed at inference**.
 
 For example, the robot gets this sentence once, at the start:
 
@@ -19,7 +20,13 @@ then put the cube on the target, then pick up the cylinder, then put the cylinde
 
 Nothing splits it up, and the simulator never tells the policy which command it's on.
 
-[Project page with videos](https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/) · [Play with the robot live](https://theundercover01.github.io/ayushdeshmukh/projects/play/)
+<p align="center">
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/play/"><img src="https://img.shields.io/badge/%E2%96%B6%20%20Play%20with%20the%20robot%20live-d9480f?style=for-the-badge" alt="Play with the robot live" height="64"></a>
+</p>
+<p align="center">
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><img src="https://img.shields.io/badge/Project%20page%20with%20videos%20%E2%80%94%20my%20submission-1e4fa3?style=for-the-badge" alt="Project page with videos (my submission)" height="64"></a>
+</p>
+<p align="center"><sub>The project page with videos on my website is my submission. Its videos are also in this README.</sub></p>
 
 ## Results
 
@@ -45,7 +52,13 @@ Training episodes contain at most 2 commands; every row with 3 or more is out of
   <img src="results/site_media/unstack_4of4.gif" alt="Four steps done in order" width="49%">
   <img src="results/site_media/restack8_marks_race.gif" alt="Eight steps: the marks run ahead after four" width="49%">
 </p>
-<p align="center"><sub>Left: the 4-step task, in order. Right: the 8-step task. Its "(done)" marks run ahead after four steps and it stops.</sub></p>
+<p align="center"><sub>Left: <b>Stack, then unstack</b> (4 commands, 2×). Right: the 8-step task. Its "(done)" marks run ahead after four steps and it stops.</sub></p>
+
+<p align="center">
+  <img src="results/site_media/c1.gif" alt="Cube to the target" width="49%">
+  <img src="results/site_media/c2.gif" alt="Cube on the can" width="49%">
+</p>
+<p align="center"><sub>Left: <b>Cube to the target</b> (2 commands, 2×). Right: <b>Cube on the can</b> (2 commands, 2×).</sub></p>
 
 **Play with it.** The robot runs live on the [play page](https://theundercover01.github.io/ayushdeshmukh/projects/play/) when my GPU is on. *Sabotage the robot*: it gets a 2-, 4- or 6-step task and you get one sabotage per round (knock the object away or write a fake "(done)"); you win if the task isn't really done when it stops, and winning takes understanding how its memory works. *Tic-tac-toe*: you're O, the robot has to physically place each X. *Build a sentence*: up to ten commands. The tic-tac-toe robot is a fine-tune of an earlier student on the nine board squares and then on 2,000 recordings with flat X / O pieces on the board, which took placement with pieces from 38 to 97 of 100.
 
@@ -68,6 +81,7 @@ The question: if a robot is only ever shown single skills, can it carry out a mu
 <p align="center">
   <img src="results/site_media/phone_clips.gif" alt="Phone clips: push, pick up, put down, put on the other object" width="100%">
 </p>
+<p align="center"><sub>Push · Pick up · Put down · Put on the other object</sub></p>
 
 43 usable phone clips of me with a real cube and a crisps can: 12 pushes, 10 pick-ups, 21 put-downs, never two skills in a row. ArUco markers on each object (cube 1–5, can 0), the target (11) and a calibration marker (13) give each object's position and orientation on the table in every frame. I track the object and not my hand, because a hand and a two-finger gripper grab things differently; what carries over is where the object goes.
 
@@ -76,6 +90,7 @@ The question: if a robot is only ever shown single skills, can it carry out a mu
 <p align="center">
   <img src="results/site_media/real_clip_to_template.gif" alt="A phone clip with tracked markers next to the template the reward uses" width="100%">
 </p>
+<p align="center"><sub>The tracked path (orange) and the template the reward uses (green).</sub></p>
 
 Dense, object-centric keypoint reward. The 8 corner keypoints of the commanded object are tracked against a per-skill reference trajectory (start → goal), and the reward is the keypoints' progress along it inside a 3 cm tube (3 cm ≈ the median deviation of my clips from their mean path). Taken from the clips: lift height (≈20 cm), place height, push direction, allowed yaw change. Set by hand: the completion test (keypoint error < ≈2 cm, object speed < 0.1 m/s, held 0.3 s), a per-step time penalty and a per-command completion bonus. There is no grasp term.
 
@@ -107,6 +122,12 @@ The model has one extra output, "is the current step done?". In training it is 1
 > ~~pick up the cube~~ **(done)**, then ~~put the cube on the cylinder~~ **(done)**, then **pick up the cube** ← now, then put the cube on the target
 
 The first command without a mark is the one to do. Training episodes have only one or two real commands, so sentences are padded with up to 10 commands, some already marked, and every position shows up.
+
+<p align="center">
+  <img src="results/site_media/nomarks_stuck.gif" alt="Marks off: stuck on command one" width="49%">
+  <img src="results/site_media/restack_6of6.gif" alt="Its own marks: all six in order" width="49%">
+</p>
+<p align="center"><sub>Left: <b>Marks off</b> (3×): stuck on command one. Right: <b>Its own marks</b> (3×): all six in order.</sub></p>
 
 ## 3 · Experimental setup
 
@@ -145,6 +166,12 @@ From the camera alone you can't tell where you are. In the 6-step task the arm r
 
 The model really uses its marks (tested on an earlier model with the same recipe). With marking switched off the 4-step task never finishes (0 of 50); with the first two marks written in advance it skips straight to step 3 and finishes 42 of 50.
 
+<p align="center">
+  <img src="results/site_media/knock_refetch.gif" alt="Knocked away after it was done" width="49%">
+  <img src="results/site_media/drop_repick.gif" alt="Dropped mid-carry" width="49%">
+</p>
+<p align="center"><sub>Left: <b>Knocked away after it was done</b> (2×). Right: <b>Dropped mid-carry</b> (2×).</sub></p>
+
 The limit is the done signal itself. It fires when an object is lifted and held still, whichever command is current, so it reads the image more than the sentence. On 8 steps the marks reach 8 of 8 after four steps and the robot stops; in 60 of 100 runs exactly four steps were done in order.
 
 ### 4.4 Where the 6-step runs fail
@@ -153,11 +180,22 @@ The limit is the done signal itself. It fires when an object is lifted and held 
   <img src="results/site_media/restack_fail.gif" alt="Four steps done, then the cylinder is knocked over" width="49%">
   <img src="results/site_media/restack_fail_early.gif" alt="A mark written too early skips a step" width="49%">
 </p>
-<p align="center"><sub>Left: the cylinder is knocked over at step 5. Right: a mark written too early skips a step.</sub></p>
+<p align="center"><sub>Left: <b>Knocks the cylinder over</b> at command five (3×). Right: <b>Marked done too early</b>, so a step is skipped (3×).</sub></p>
 
 Of 100 runs, the failures stop at step 5, picking up the cylinder (25), step 4 (15) and step 2 (13); 21 runs knock something over. Two causes: early marks, and the cylinder, the weakest object (pick up 59, to the target 77, onto the cube 81, against 94–97 for the cube).
 
 ### 4.5 What didn't work
+
+<p align="center">
+  <img src="results/site_media/fail_never_release.gif" alt="Reward for carrying: never lets go" width="49%">
+  <img src="results/site_media/fail_hold_up.gif" alt="Motion primitives: holds the cube up forever" width="49%">
+</p>
+<p align="center"><sub>Left: <b>Reward for carrying:</b> never lets go. Right: <b>Motion primitives:</b> holds the cube up forever.</sub></p>
+<p align="center">
+  <img src="results/site_media/fail_top_edge.gif" alt="Loose arrived check: grabs the top edge, the cube slips" width="49%">
+  <img src="results/site_media/fail_push_not_lift.gif" alt="Distance-to-goal reward: pushes instead of lifting" width="49%">
+</p>
+<p align="center"><sub>Left: <b>Loose "arrived" check:</b> grabs the top edge, the cube slips. Right: <b>Distance-to-goal reward:</b> pushes instead of lifting.</sub></p>
 
 | Attempt | Result |
 | :--- | :--- |
