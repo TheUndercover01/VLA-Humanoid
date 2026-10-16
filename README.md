@@ -223,7 +223,7 @@ PUSH=1 play/run_tunnels.sh start; play/watchdog.sh
 | Eval | `sim/eval_chains.py --learned_done --marks --whole_prompt` |
 | Games | `play/` |
 
-Paths in the scripts point to my machine (`/media/storage/...`); change them to yours. The full experiment log is in [PROGRESS.md](PROGRESS.md).
+Paths in the scripts point to my machine (`/media/storage/...`); change them to yours. [PROGRESS.md](PROGRESS.md) is the running lab log, written by an AI coding assistant as the experiments ran. It is kept raw: dead ends, bugs and superseded numbers included. The numbers in this README are the final ones.
 
 ## Related work
 
