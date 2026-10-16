@@ -35,11 +35,8 @@ button.bad{border-color:var(--warm);color:var(--warm)}
 .note{min-height:1.3rem;margin-top:.6rem}
 .log{font-size:.8rem;color:var(--muted);margin:.4rem 0 0;padding-left:1.1rem}
 .truth{font-size:.8rem}.truth.yes{color:var(--ok)}.truth.no{color:var(--warm)}
-details{margin-top:1rem;font-size:.9rem}summary{cursor:pointer;font-weight:700}
+.spoil{margin-top:1.4rem;text-align:center}.spoil #spoiler{margin:.8rem auto 0;max-width:34rem;text-align:left;font-size:.9rem;background:var(--card);border:2px dashed var(--warm);border-radius:4px;padding:.7rem .9rem}.spoil ul{margin:.4rem 0 0;padding-left:1.1rem}
 </style></head><body><main>
-<h1>Sabotage the robot</h1>
-<p class="lead">The robot marks each step <b>(done)</b> and stops when all are marked. One sabotage per round: win if the task isn't really done when it stops. Best of 5.
-To beat it you need to know how it works: its only memory is its own "(done)" marks.</p>
 <div class="pg">
   <div class="box">
     <img id="view" class="view" alt="the robot's two cameras">
@@ -64,10 +61,13 @@ To beat it you need to know how it works: its only memory is its own "(done)" ma
     </div>
     <div id="note" class="note">Connecting to the robot...</div>
     <ul id="log" class="log"></ul>
-    <details><summary>How to win (spoilers)</summary>
-      <p>Once a step is marked (done), it never goes back to it.</p></details>
   </div>
 </div>
+<div class="spoil"><button id="spoilbtn">How to win (spoiler)</button>
+  <div id="spoiler" hidden><b>Okay, you're cheating.</b> Its only memory is its own "(done)" marks, so:
+    <ul><li><b>Fake a (done)</b> on a step it hasn't done yet. It skips that step and never comes back.</li>
+    <li><b>Wait for a (done)</b>, then knock that object away. It often thinks the job is still done.</li>
+    <li><b>Strike late</b>, just before the last mark. There's no time left to redo anything.</li></ul></div></div>
 </main>
 <script>
 const $ = id => document.getElementById(id);
@@ -113,5 +113,6 @@ function show(m) {
 function markTask() { document.querySelectorAll("button.task").forEach(b => b.classList.toggle("sel", b.dataset.k === task)); }
 $("start").onclick = () => send({type: "start", task});
 document.querySelectorAll("button.bad").forEach(b => b.onclick = () => send({type: "sabotage", kind: b.dataset.k}));
+$("spoilbtn").onclick = () => { $("spoiler").hidden = !$("spoiler").hidden; };
 connect();
 </script></body></html>

@@ -34,20 +34,18 @@ button.b:disabled{opacity:.4;cursor:default;box-shadow:none}
 .note{min-height:1.3rem;margin:.7rem 0 0;font-weight:600}
 .small{font-size:.8rem;color:var(--muted)}
 </style></head><body><main>
-<h1>Tic-tac-toe against the robot</h1>
-<p class="lead">You are <b style="color:var(--bold)">O</b>, the robot is <b style="color:var(--warm)">X</b>. The robot has to physically place its cube; if it misses the square, it loses the turn.</p>
 <div class="pg">
   <div class="box">
     <img id="view" class="view" alt="the robot's two cameras">
     <div class="cams"><span>front camera</span><span>wrist camera</span></div>
-    <div class="lab">The robot's sentence, with its own "(done)" marks</div>
+    <div class="lab">What the robot believes</div>
     <div id="sent" class="sent">-</div>
     <div class="row"><span>its "this step is done" signal</span><b id="dp">0.00</b></div>
     <div class="meter"><div id="bar"></div></div>
     <div class="row"><span>time on this move</span><b id="time">-</b></div>
   </div>
   <div class="box">
-    <div class="lab">The board (as on the table, seen from the front camera)</div>
+    <div class="lab">The board</div>
     <div id="board" class="board"></div>
     <div id="note" class="note">Connecting to the robot...</div>
     <div class="lab">New game</div>
@@ -58,9 +56,6 @@ button.b:disabled{opacity:.4;cursor:default;box-shadow:none}
     
   </div>
 </div>
-<p class="small" style="margin-top:1.2rem;max-width:46rem"><b>How this robot was trained.</b> It is an earlier version of the student (same recipe as the main model), fine-tuned twice: first on recordings with the
-green target on the nine squares, then on 2,000 more with random flat X and O pieces on the board. With pieces on the board it places its cube 97 times in 100
-(38 before the second step). It only ever hears "pick up the cube, then put the cube on the target"; the game decides where the target goes.</p>
 </main>
 <script>
 const $ = id => document.getElementById(id);

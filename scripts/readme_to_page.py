@@ -34,6 +34,15 @@ EXTRA_CSS = """
     border:3px solid var(--fg);border-radius:6px;box-shadow:5px 5px 0 var(--shadow);padding:.75rem 1.6rem}
   .paper .bigplay a:hover{background:var(--accent-hi);color:#211d19}
   .paper .clips{margin:0 0 .4rem}
+  .paper .tldr.abstract{margin:0 0 1.2rem;box-shadow:5px 5px 0 var(--shadow);border-width:3px}
+  .paper .tldr.abstract p{margin:0 0 .7rem}.paper .tldr.abstract p:last-child{margin:0}
+  .paper .note{text-align:left}
+  .paper .cards{list-style:none;padding:0;display:grid;gap:.7rem}
+  .paper .cards li{background:var(--card);border:2px solid var(--fg);border-radius:4px;padding:.65rem .85rem;font-size:.93rem;line-height:1.55}
+  .paper .cards.hyp li{border-left:7px solid var(--accent-bold)}
+  .paper .cards.lim li{border-left:7px solid var(--accent-warm)}
+  .paper .verdict{display:inline-block;margin-left:.4rem;padding:.05rem .45rem;border-radius:3px;background:var(--accent-hi);color:#211d19;
+    font:700 .7rem/1.5 "Space Grotesk",sans-serif;text-transform:uppercase;letter-spacing:.04em;vertical-align:.15rem}
 """
 
 
@@ -48,6 +57,49 @@ def video(name, width):
     name = VID.get(name, name)
     return (f'<video class="v" src="videos/{name}.mp4" poster="videos/{name}.jpg" style="width:{width}" '
             'data-autoplay autoplay muted loop controls playsinline preload="metadata"></video>')
+
+
+def chips(text):
+    """'a (done), then b, then c' (with <del>/<strong> from markdown) -> the old page's command chips."""
+    out = []
+    for seg in re.split(r",\s*then\s+", re.sub(r"\s+", " ", text).strip().strip('"')):
+        done = "<del>" in seg or "(done)" in seg
+        now = "← now" in seg or (not done and "<strong>" in seg)
+        plain = re.sub(r"<[^>]+>|\(done\)|← now|\"", "", seg).strip()
+        cls = "cmd done" if done else "cmd now" if now else "cmd"
+        out.append(f'<span class="{cls}">{plain}</span>' + ('<span class="mark">(done)</span>' if done else ""))
+    return '<p class="sentence">' + ", then ".join(out) + "</p>"
+
+
+def flair(html):
+    """Subtle extras on top of the README text: abstract box + stat tiles, the 5-step strip, command chips,
+    side notes as boxes, hypothesis / limitation cards, verdict badges."""
+    # abstract: its two paragraphs in a box, then two big numbers
+    i = html.index('<p class="paper-text"><strong>Abstract.</strong>')
+    j = html.index("</p>", html.index("</p>", i) + 4) + 4
+    box = html[i:j].replace("<strong>Abstract.</strong>", "<b>Abstract</b>")
+    tiles = ('<div class="big">'
+             '<div><b>81%</b><span>4 commands in a row, all in order, from one sentence. Never trained on.</span></div>'
+             '<div><b>40%</b><span>6 commands in a row, all in order, from one sentence. Never trained on.</span></div></div>')
+    html = html[:i] + f'<div class="tldr abstract">{box}</div>\n' + tiles + html[j:]
+    # sentences: the example in a code block, and the quoted ones
+    html = re.sub(r"<pre><code>(pick up.*?)</code></pre>", lambda m: chips(m.group(1)), html, flags=re.S)
+    html = re.sub(r"<blockquote>\s*<p[^>]*>(.*?)</p>\s*</blockquote>",
+                  lambda m: chips(m.group(1)) if ", then" in m.group(1) else m.group(0), html, flags=re.S)
+    # the pipeline figure -> the old 5-step strip
+    flow = (Path(__file__).parent.parent / "docs" / "page_flow.html").read_text()
+    html = re.sub(r'<div class="center">\s*<img src="img/pipeline.svg"[^>]*>\s*</div>', flow, html)
+    # paragraphs that open with a bold lead -> side-note boxes
+    html = re.sub(r'<p class="paper-text"><strong>(?!H\d)(.*?)</strong>(.*?)</p>',
+                  r'<div class="note why"><b>\1</b>\2</div>', html, flags=re.S)
+    # hypotheses and limitations as cards
+    html = re.sub(r"<ul>(\s*<li><strong>H1\.)", r'<ul class="cards hyp">\1', html)
+    k = html.index('id="5--limitations"')
+    html = html[:k] + re.sub(r"<ul>", '<ul class="cards lim">', html[k:], count=1)
+    # verdicts on the analysis headings
+    html = re.sub(r"(<h3[^>]*>.*?)\s*\(((?:partly )?supported[^)]*)\)(</h3>)",
+                  r'\1 <span class="verdict">\2</span>\3', html)
+    return html
 
 
 def main():
@@ -90,6 +142,7 @@ def main():
     html = re.sub(r"<h2>(.*?)</h2>", lambda m: f'<h2 class="paper-h" id="{slug(m.group(1))}">{m.group(1)}</h2>', html)
     html = re.sub(r"<h3>(.*?)</h3>", lambda m: f'<h3 id="{slug(m.group(1))}">{m.group(1)}</h3>', html)
     html = html.replace("<p>", '<p class="paper-text">')
+    html = flair(html)
     parts = re.split(r'(?=<h2 class="paper-h")', html)
     html = parts[0] + "".join(f"<section>\n{p}\n</section>\n" for p in parts[1:])
 

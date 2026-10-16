@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow, noarchive"><title>Robot Playground</title>
+<meta name="robots" content="noindex, nofollow, noarchive"><title>Build a sentence</title>
 <style>
 :root{--bg:#f6f1e7;--fg:#211d19;--muted:#726657;--accent-warm:#d9480f;--accent-hi:#e8bd2a;--card:#fffdf8;--shadow:rgba(33,29,25,.9);--accent-bold:#1e4fa3}
 @media(prefers-color-scheme:dark){:root{--bg:#18140f;--fg:#efe6d6;--muted:#a89b89;--accent-warm:#ff8a50;--accent-hi:#f2cf4e;--card:#241e17;--shadow:rgba(0,0,0,.9);--accent-bold:#8fb6ff}}
@@ -38,7 +38,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-
 .pg .piece.disc{width:5rem;background:#6bb4f2;border-radius:.6rem}
 .pg input[type=range]{width:100%}
 
-</style></head><body><main><h1>Robot Playground</h1>
+</style></head><body><main><h1>Build a sentence</h1>
 <div class="tabs">
   <button id="tab-build" class="tab on">Build a sentence</button>
   <button id="tab-ttt" class="tab">Tic-tac-toe</button>
@@ -48,11 +48,11 @@ body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-
   <div class="box">
     <img id="view" class="view" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
     <div class="cams"><span>front camera</span><span>wrist camera</span></div>
-    <div class="lab">What the robot was told, and what it believes it has done</div>
+    <div class="lab">What the robot believes</div>
     <div id="live" class="sent"><span class="empty">The robot is idle.</span></div>
     <div class="row"><span>"(done)" written by the robot</span><b id="marks">–</b></div>
-    <div class="row"><span>End result reached (simulator check, held 0.5 s)</span><b id="simdone">–</b></div>
-    <div class="lab">Its done flag (a mark is written at 0.85 for 0.5 s)</div>
+    <div class="row"><span>Really done? (simulator check)</span><b id="simdone">–</b></div>
+    <div class="lab">Its "this step is done" signal</div>
     <div class="meter"><div id="flag"></div></div>
     <div id="backend" class="msg"></div>
   </div>
