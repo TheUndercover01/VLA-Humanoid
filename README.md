@@ -1,11 +1,14 @@
 <h1 align="center">I Never Showed It the Task</h1>
-<p align="center"><b>Composing multi-step manipulation from single-skill phone clips, an RL teacher, and a VLA that marks its own progress through the sentence</b></p>
+<p align="center"><b>Composing multi-step manipulation from single-skill videos</b></p>
+<p align="center"><i>Can a robot that only knows single skills do long tasks it was never shown?</i></p>
 
 <p align="center">
   <img src="results/site_media/restack_6of6.gif" alt="A Franka arm carries out six commands from one sentence, in order" width="70%">
 </p>
 
-**Abstract.** I filmed myself doing single skills on my phone (pushing, picking up, putting down) and never two in a row. From the tracked object paths I built a reward, trained an RL teacher in simulation on episodes of at most two commands, and distilled it into a vision-language-action model (SmolVLA, 450M) that sees only two cameras and a sentence. Given one sentence with several commands, the model tracks its progress by writing "(done)" after each command it believes is finished. It does a 4-step task it never saw in order 81 times in 100, a 6-step task 40 times, and an 8-step task never. The failures point to one cause: the model's "done" signal follows the image, not the sentence.
+**Abstract.** Once we know how to pick something up, we can pick up almost anything. Once we also know how to put something down, we can do one after the other without ever practising the pair, because we know what the hand-off between two skills looks like. Can a small vision-language-action model (VLA) do the same: learn single skills and their hand-offs, then carry out long tasks it was never trained on?
+
+I filmed myself on my phone doing single skills (pushing, picking up, putting down) and never recorded two consecutive skills. From the tracked object paths I built a reward, trained an RL teacher in simulation on episodes of at most two commands, and distilled it into SmolVLA (450M), which sees only two cameras and one sentence listing every command. The hard part is memory: from the camera alone the model can't tell which step it is on, so it has to track its own progress through the sentence. It completes a 4-step task it never saw, in order, 81 times in 100, and a 6-step task 40 times.
 
 For example, the robot gets this sentence once, at the start:
 
