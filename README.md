@@ -18,7 +18,7 @@ pick up the cube, then put the cube on the cylinder, then pick up the cube,
 then put the cube on the target, then pick up the cylinder, then put the cylinder on the cube
 ```
 
-Nothing splits it up, and the simulator never tells the policy which command it's on.
+Each part between the commas is a **command**: one skill (pick up, put down, push) applied to one object, plus where it goes when the skill needs a destination, e.g. *put the cube on the cylinder*. This sentence has six. Nothing splits it up, and the simulator never tells the policy which command it's on.
 
 <p align="center"><b>Click the buttons below to play with the robot live and to see the project page on my website.</b></p>
 <p align="center">
@@ -102,7 +102,7 @@ Two changes on top of that:
 - **Exploration.** With an object-only reward the signal is zero until first contact; a run from the robot initial pose learned absolutely nothing for 504 iterations :(. I prepend a gripper → object leg (straight-line reference from the TCP to the object centre, same 3 cm tube) and randomize the initial arm configuration every episode.
 - **Reward hacking.** The teacher then solved *push* by grasp-and-carry (85 of 100 push episodes lifted the object > 3 cm). A lift penalty that is active only during push commands removed it (0 of 100). 
 
-Before this reward I tried writing a separate reward by hand for each task, and the RL policy found a loophole in every one. Rewarding grasping and carrying made it open and close the gripper right at the release threshold to collect both rewards, without ever finishing. Rewarding distance to the goal made it push the cube onto the target instead of lifting it (see [What didn't work](#45-what-didnt-work)). The keypoint reward uses the same formula for every command; only the template changes. There are three templates, one per skill (push, pick up, put down), each is measured from the clips, and the command fills in which object and where it goes. Chaining commands just switches templates. It only scores where the object goes, so it doesn't depend on the robot's body.
+Before this reward I tried writing a separate reward by hand for each task, and the RL policy found a loophole in every one. Rewarding grasping and carrying made it open and close the gripper right at the release threshold to collect both rewards, without ever finishing. Rewarding distance to the goal made it push the cube onto the target instead of lifting it (see [What didn't work](#45-what-didnt-work)). The keypoint reward uses the same formula for every command; only the template changes. There are three templates, one per skill (push, pick up, put down), each measured from the clips. The current command picks the template and fills in the rest: *put the cube on the cylinder* uses the put-down template, applied to the cube, ending on top of the cylinder. Chaining commands just switches templates. It only scores where the object goes, so it doesn't depend on the robot's body.
 
 ### 2.3 RL teacher
 
