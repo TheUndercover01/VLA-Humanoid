@@ -28,6 +28,16 @@ Each part between the commas is a **command**: one skill (pick up, put down, pus
   <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><img src="docs/button_project.svg" alt="Project page" width="300"></a>
 </p>
 
+**Contents**
+
+- [Results](#results), and the three games
+- [1 · Hypotheses](#1--hypotheses)
+- [2 · Method](#2--method): [clips](#21-clips) · [reward](#22-how-is-the-reward-inferred-from-the-clips) · [RL teacher](#23-rl-teacher) · [distillation](#24-distillation) · [memory](#25-memory-done-marks-in-the-sentence)
+- [3 · Experimental setup](#3--experimental-setup), and why the check is loose
+- [4 · Analysis](#4--analysis): [where the 6-step runs fail](#44-where-the-6-step-runs-fail) · [what didn't work](#45-what-didnt-work)
+- [5 · Limitations](#5--limitations) · [6 · Future work](#6--future-work)
+- [Reproduce](#reproduce) · [Related work](#related-work)
+
 ## Results
 
 Success rate (%) over 100 held-out table layouts per task. A run succeeds only if the simulator registers every command of the sentence as completed, in order (see [Experimental setup](#3--experimental-setup)).
