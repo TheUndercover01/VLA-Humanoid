@@ -7,7 +7,7 @@
 </p>
 <p align="center"><sub><b>Six commands from one sentence, in order (3×).</b> The example sentence: <i>"Pick up the cube, then put the cube on the cylinder, then pick up the cube, then put the cube on the target, then pick up the cylinder, then put the cylinder on the cube."</i> Left: front camera. Right: wrist camera.</sub></p>
 
-**Abstract.** People don't practise a sequence before doing it. Someone who knows how to pick an object up and how to put one down can already pick something up and put it somewhere else; switching from one skill to the next comes for free once both are known. Can a small vision-language-action model (VLA) learn the same way, from single skills and the switch between them, and then carry out long tasks it was never trained on?
+**Abstract.** Skills transfer. Once we can do something, we can do it with other objects, in other places and in other scenes, and we can combine it with what else we know. Someone who knows how to pick an object up and how to put one down can do the two together without anyone showing them how. Can a small vision-language-action model (VLA) learn the same way: from single skills alone, carry out long tasks it was never trained on?
 
 I filmed myself on my phone doing single skills (pushing, picking up, putting down) and never recorded two consecutive skills. From the tracked object paths I built a reward, trained an RL teacher in simulation on episodes of at most two commands, and distilled it into SmolVLA (450M), which sees only two cameras and one sentence listing every command. The hard part is memory: from the camera alone the model can't tell which step it is on, so it has to track its own progress through the sentence. It completes a 4-step task in order 81 times in 100 and a 6-step task 40 times. It was never trained on either task and never saw one done: **both are composed at inference**.
 
@@ -21,12 +21,11 @@ then put the cube on the target, then pick up the cylinder, then put the cylinde
 Nothing splits it up, and the simulator never tells the policy which command it's on.
 
 <p align="center">
-  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/play/"><img src="https://img.shields.io/badge/%E2%96%B6%20%20Play%20with%20the%20robot%20live-d9480f?style=for-the-badge" alt="Play with the robot live" height="64"></a>
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/play/"><img src="docs/btn_play.svg" alt="Play with the robot live" width="440"></a>
 </p>
 <p align="center">
-  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><img src="https://img.shields.io/badge/Project%20page%20with%20videos%20%E2%80%94%20my%20submission-1e4fa3?style=for-the-badge" alt="Project page with videos (my submission)" height="64"></a>
+  <a href="https://theundercover01.github.io/ayushdeshmukh/projects/never-shown/"><img src="docs/btn_project.svg" alt="Project page (my submission)" width="440"></a>
 </p>
-<p align="center"><sub>The project page with videos on my website is my submission. Its videos are also in this README.</sub></p>
 
 ## Results
 

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="92" viewBox="0 0 440 92">
+  <rect x="8" y="8" width="426" height="80" rx="12" fill="#211d19"/>
+  <rect x="2" y="2" width="426" height="80" rx="12" fill="#d9480f" stroke="#211d19" stroke-width="3"/>
+  <circle cx="48" cy="42" r="22" fill="#fff"/>
+  <path d="M41 30 L59 42 L41 54 Z" fill="#d9480f"/>
+  <text x="84" y="43" font-family="Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="25" font-weight="800" fill="#fff">Play with the robot live</text>
+  <text x="84" y="65" font-family="Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="14" font-weight="500" fill="#ffe8dc">sabotage it · tic-tac-toe · build a sentence</text>
+</svg>
