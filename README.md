@@ -23,7 +23,7 @@ All commands done in order, out of 100 unseen layouts. Final model: `ours_cyl_ma
 | :--- | :---: | ---: | ---: |
 | pick up the cube / the cylinder | 1 | 94 / 59 | 100 |
 | push the cube to the target | 1 | 59 | 100 |
-| cube to the target / cylinder to the target | 2 | 97 / 76 | 100 |
+| cube to the target / cylinder to the target | 2 | 97 / 77 | 100 |
 | cube on the cylinder / cylinder on the cube | 2 | 96 / 81 | 100 |
 | push the cylinder to the target, stack the cube on it | 3 | 62 | 94 |
 | **stack, then unstack** | **4** | **81** | 100 |
@@ -37,6 +37,16 @@ Everything with 3+ commands was never seen in training. The teacher is told whic
   <img src="results/site_media/restack8_marks_race.gif" alt="Eight commands: the marks run ahead after four" width="49%">
 </p>
 <p align="center"><sub>Left: 4 commands in order. Right: 8 commands, the marks run ahead after four and it stops.</sub></p>
+
+## Play with it
+
+The robot runs live on the [play page](https://theundercover01.github.io/ayushdeshmukh/projects/play/) when my GPU is on (`play/`, `play/watchdog.sh` keeps it up).
+
+- **Sabotage the robot:** it gets a 2-, 4- or 6-step task; you get one sabotage per round (knock the object away, or write a fake "(done)"). You win if the task isn't really done when it stops. Winning takes knowing the method: it keeps its place only through its own "(done)" marks and never revisits a marked step.
+- **Tic-tac-toe:** you're O, the robot is X. The game picks the square and moves the target pad; the robot has to really place a cube there. Pieces are drawn flat on the table.
+- **Build a sentence:** up to ten commands; watch it work through them.
+
+The tic-tac-toe robot is a fine-tune of an earlier student (same recipe): first on recordings with the target on the nine squares, then on 2,000 more with random flat X / O pieces on the board (placement with pieces 38 → 97 of 100).
 
 ## How it works
 

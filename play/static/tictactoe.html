@@ -58,6 +58,9 @@ button.b:disabled{opacity:.4;cursor:default;box-shadow:none}
     
   </div>
 </div>
+<p class="small" style="margin-top:1.2rem;max-width:46rem"><b>How this robot was trained.</b> It is an earlier version of the student (same recipe as the main model), fine-tuned twice: first on recordings with the
+green target on the nine squares, then on 2,000 more with random flat X and O pieces on the board. With pieces on the board it places its cube 97 times in 100
+(38 before the second step). It only ever hears "pick up the cube, then put the cube on the target"; the game decides where the target goes.</p>
 </main>
 <script>
 const $ = id => document.getElementById(id);

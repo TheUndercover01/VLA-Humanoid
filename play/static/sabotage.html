@@ -19,6 +19,8 @@ main{max-width:1040px;margin:0 auto;padding:20px 16px 40px}h1{margin:0 0 4px}
 button,select{font:600 .85rem system-ui,sans-serif;background:var(--card);color:var(--fg);border:2px solid var(--fg);border-radius:3px;padding:.35rem .7rem;cursor:pointer;box-shadow:2px 2px 0 var(--shadow)}
 button:hover:not(:disabled){background:var(--hi);color:#211d19}
 button:disabled{opacity:.4;cursor:default;box-shadow:none}
+button.task{font-weight:500;text-align:left}
+button.task.sel{background:var(--hi);color:#211d19;border-width:3px}
 button.go{background:var(--fg);color:var(--bg)}
 button.bad{border-color:var(--warm);color:var(--warm)}
 .sent{min-height:2.6rem;padding:.5rem;border:2px dashed var(--fg);border-radius:3px;line-height:1.9}
@@ -36,7 +38,8 @@ button.bad{border-color:var(--warm);color:var(--warm)}
 details{margin-top:1rem;font-size:.9rem}summary{cursor:pointer;font-weight:700}
 </style></head><body><main>
 <h1>Sabotage the robot</h1>
-<p class="lead">The robot marks each step <b>(done)</b> and stops when all are marked. One sabotage per round: win if the task isn't really done when it stops. Best of 5.</p>
+<p class="lead">The robot marks each step <b>(done)</b> and stops when all are marked. One sabotage per round: win if the task isn't really done when it stops. Best of 5.
+To beat it you need to know how it works: its only memory is its own "(done)" marks.</p>
 <div class="pg">
   <div class="box">
     <img id="view" class="view" alt="the robot's two cameras">
@@ -52,10 +55,10 @@ details{margin-top:1rem;font-size:.9rem}summary{cursor:pointer;font-weight:700}
     <div class="lab">Score</div>
     <div class="score"><span>Robot <span id="sr">0</span></span><span>You <span id="sp">0</span></span><span id="rd" style="color:var(--muted);font-weight:600;font-size:1rem"></span></div>
     <div class="lab">Round</div>
-    <div class="btns"><select id="task"></select><button id="start" class="go">Start round</button></div>
+    <div id="tasks" class="btns"></div>
+    <div class="btns" style="margin-top:.5rem"><button id="start" class="go">Start round</button></div>
     <div class="lab">Sabotage (<span id="left">0</span> left)</div>
     <div class="btns">
-      <button class="bad" data-k="move">Move the object</button>
       <button class="bad" data-k="knock">Knock it away</button>
       <button class="bad" data-k="mark">Fake a (done)</button>
     </div>
@@ -68,7 +71,7 @@ details{margin-top:1rem;font-size:.9rem}summary{cursor:pointer;font-weight:700}
 </main>
 <script>
 const $ = id => document.getElementById(id);
-let ws = null, last = null, tasksFilled = false;
+let ws = null, last = null, tasksFilled = false, task = null;   // 16 Oct: task buttons, not a <select> (its list opened off-screen inside the site's iframe)
 const url = (location.protocol === "https:" ? "wss://" : "ws://") + (location.host || "127.0.0.1:8810") + "/ws";
 function connect() {
   ws = new WebSocket(url); ws.binaryType = "blob";
@@ -83,7 +86,13 @@ function connect() {
 function send(o) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); }
 function show(m) {
   last = m;
-  if (!tasksFilled && m.tasks) { for (const [k, v] of Object.entries(m.tasks)) { const o = document.createElement("option"); o.value = k; o.textContent = v; $("task").appendChild(o); } tasksFilled = true; }
+  if (!tasksFilled && m.tasks) {
+    for (const [k, v] of Object.entries(m.tasks)) {
+      const b = document.createElement("button"); b.className = "task"; b.dataset.k = k; b.textContent = v;
+      b.onclick = () => { task = k; markTask(); }; $("tasks").appendChild(b);
+    }
+    task = Object.keys(m.tasks)[0]; tasksFilled = true; markTask();
+  }
   $("sr").textContent = m.score.robot; $("sp").textContent = m.score.player;
   $("rd").textContent = m.round ? `round ${m.round} / ${m.rounds}` : "";
   const s = $("sent"); s.innerHTML = "";
@@ -96,12 +105,13 @@ function show(m) {
   if (m.running) { t.className = "truth " + (m.sim_ok ? "yes" : "no"); t.textContent = m.sim_ok ? "Simulator: the task is done right now." : "Simulator: the task is not done yet."; }
   else { t.className = "truth"; t.innerHTML = "&nbsp;"; }
   $("left").textContent = m.left;
-  $("start").disabled = m.running; $("task").disabled = m.running;
+  $("start").disabled = m.running; document.querySelectorAll("button.task").forEach(b => b.disabled = m.running);
   document.querySelectorAll("button.bad").forEach(b => b.disabled = !m.running || m.left <= 0);
   $("note").textContent = m.note;
   $("log").innerHTML = m.log.map(x => `<li>${x}</li>`).join("");
 }
-$("start").onclick = () => send({type: "start", task: $("task").value});
+function markTask() { document.querySelectorAll("button.task").forEach(b => b.classList.toggle("sel", b.dataset.k === task)); }
+$("start").onclick = () => send({type: "start", task});
 document.querySelectorAll("button.bad").forEach(b => b.onclick = () => send({type: "sabotage", kind: b.dataset.k}));
 connect();
 </script></body></html>
